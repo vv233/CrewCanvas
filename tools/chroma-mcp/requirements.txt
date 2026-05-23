@@ -1,0 +1,4 @@
+mcp[cli]>=1.2
+chromadb>=0.5
+uvicorn[standard]>=0.30
+starlette>=0.40

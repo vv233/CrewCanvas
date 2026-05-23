@@ -1,0 +1,4 @@
+mcp[cli]>=1.2
+alpaca-py>=0.30
+uvicorn[standard]>=0.30
+starlette>=0.40

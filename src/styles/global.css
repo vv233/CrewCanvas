@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    background: #0b0d12;
+    color: #e6e8ee;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a2f3d;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a4052;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent/90;
+  }
+  .btn-ghost {
+    @apply btn text-ink/80 hover:bg-panel hover:text-ink;
+  }
+  .btn-danger {
+    @apply btn bg-accent-danger/80 text-white hover:bg-accent-danger;
+  }
+  .input {
+    @apply w-full rounded-md border border-line bg-bg-soft px-2 py-1.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none;
+  }
+  .label {
+    @apply text-xs font-medium uppercase tracking-wider text-muted;
+  }
+  .card {
+    @apply rounded-lg border border-line bg-panel;
+  }
+}
+
+/* React Flow theme overrides */
+.react-flow {
+  background-color: #0b0d12;
+}
+.react-flow__background {
+  background-color: #0b0d12;
+}
+.react-flow__controls {
+  border: 1px solid #252a36;
+  background: #161a23;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: none;
+}
+.react-flow__controls-button {
+  background: #161a23;
+  border-bottom: 1px solid #252a36;
+  color: #e6e8ee;
+  fill: #e6e8ee;
+  width: 28px;
+  height: 28px;
+}
+.react-flow__controls-button:hover {
+  background: #1f2430;
+}
+.react-flow__minimap {
+  background: #11141b !important;
+  border: 1px solid #252a36;
+  border-radius: 6px;
+}
+.react-flow__attribution {
+  background: transparent !important;
+  color: #4a5060 !important;
+}
+.react-flow__edge-path,
+.react-flow__connection-path {
+  stroke-width: 1.5;
+}
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #161a23;
+  background: #6366f1;
+}
+.react-flow__handle:hover {
+  background: #818cf8;
+}
+.react-flow__node {
+  font-family: inherit;
+}
+
+/* Reset React Flow's built-in styles for `input` / `output` / `default` /
+   `group` node types — our custom `output` (and other) node types share
+   the class name and would otherwise inherit padding / border / fixed
+   width / centered text from the library. */
+.react-flow__node-input,
+.react-flow__node-output,
+.react-flow__node-default,
+.react-flow__node-group {
+  padding: 0;
+  width: auto;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  text-align: left;
+  font-size: inherit;
+  color: inherit;
+  box-shadow: none;
+}
+.react-flow__node-input.selected,
+.react-flow__node-output.selected,
+.react-flow__node-default.selected,
+.react-flow__node-group.selected {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.react-flow__node:focus,
+.react-flow__node:focus-visible,
+.react-flow__node.selected {
+  outline: none;
+}

@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(pkill -f 'vite')",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(./.venv/bin/pip install *)",
+      "Bash(./.venv/bin/python server.py)",
+      "Bash(curl -sS -X POST http://127.0.0.1:8000/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -D /tmp/finance-headers.txt -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{\"tools\":{}},\"clientInfo\":{\"name\":\"smoke-test\",\"version\":\"0\"}}}')",
+      "Bash(awk '{print $2}')",
+      "Bash(python3 -c \"import sys,json; lines=[l for l in sys.stdin if l.startswith\\('data:'\\)]; d=json.loads\\(lines[0][5:]\\); [print\\('-', t['name'], '—', \\(t.get\\('description',''\\) or ''\\)[:60]\\) for t in d['result']['tools']]\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -sS -X POST http://127.0.0.1:8001/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -D /tmp/social-headers.txt -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{\"tools\":{}},\"clientInfo\":{\"name\":\"smoke\",\"version\":\"0\"}}}')",
+      "Bash(python3 -c \"import sys,json; lines=[l for l in sys.stdin if l.startswith\\('data:'\\)]; d=json.loads\\(lines[0][5:]\\); [print\\('-', t['name'], '—', \\(t.get\\('description',''\\) or ''\\).split\\(chr\\(10\\)\\)[0][:70]\\) for t in d['result']['tools']]\")",
+      "Bash(curl -sS -X POST http://127.0.0.1:8002/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -D /tmp/broker-headers.txt -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{\"tools\":{}},\"clientInfo\":{\"name\":\"smoke\",\"version\":\"0\"}}}')",
+      "Bash(npx --yes tsx -e ' *)",
+      "Bash(kill 1186287 1186288 2327078)",
+      "Bash(curl -s http://127.0.0.1:5173/)",
+      "Bash(pkill -f 'tools/finance-mcp/server.py')",
+      "Bash(pkill -f 'tools/social-mcp/server.py')",
+      "Bash(pkill -f 'tools/broker-mcp/server.py')",
+      "Bash(FINANCE_MCP_HOST=0.0.0.0 ./.venv/bin/python server.py)",
+      "Bash(SOCIAL_MCP_HOST=0.0.0.0 ./.venv/bin/python server.py)",
+      "Bash(SOCIAL_MCP_HOST=0.0.0.0 SOCIAL_MCP_ORIGIN=http://100.76.177.105:5173 ./.venv/bin/python server.py)",
+      "Bash(BROKER_MCP_HOST=0.0.0.0 BROKER_MCP_ORIGIN=http://100.76.177.105:5173 ./.venv/bin/python server.py)",
+      "Bash(awk '{print $4, $6}')",
+      "Bash(curl -sS -X POST http://127.0.0.1:8000/mcp -H 'Host: 100.76.177.105:8000' -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{\"tools\":{}},\"clientInfo\":{\"name\":\"smoke\",\"version\":\"0\"}}}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(git config *)",
+      "Bash(git init *)",
+      "Bash(git -c core.quotepath=false add .)",
+      "Bash(xargs -I{} ls -la {})",
+      "Bash(awk '{print $5, $NF}')"
+    ]
+  }
+}
