@@ -29,3 +29,6 @@ src/**/*.tpl.ts
 .idea
 *.swp
 *.swo
+
+# Claude Code local settings (per-machine, not project-wide)
+.claude/settings.local.json
