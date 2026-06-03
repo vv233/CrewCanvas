@@ -2,6 +2,7 @@ import type { ChatProvider, StreamChunk, StreamOpts } from './types';
 import { ProviderError } from './types';
 import { parseSSE } from './sse';
 import type { Message } from '../types';
+import i18n from '../i18n';
 
 export interface OpenAICompatibleConfig {
   /** Provider id used internally (e.g. 'openai', 'openrouter', 'lmstudio'). */
@@ -55,9 +56,7 @@ export function createOpenAICompatibleProvider(
     id: cfg.id,
     async *stream(opts: StreamOpts): AsyncIterable<StreamChunk> {
       if (cfg.requireKey && !cfg.apiKey) {
-        throw new ProviderError(
-          `${cfg.displayName} API key 未配置，请先在「设置」里录入。`
-        );
+        throw new ProviderError(i18n.t('errors.providerNoKey', { name: cfg.displayName }));
       }
       const url = `${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`;
       const body: Record<string, unknown> = {
@@ -92,7 +91,11 @@ export function createOpenAICompatibleProvider(
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new ProviderError(
-          `${cfg.displayName} 请求失败：${res.status} ${res.statusText}`,
+          i18n.t('errors.providerRequestFailed', {
+            name: cfg.displayName,
+            status: res.status,
+            statusText: res.statusText,
+          }),
           { status: res.status, body: text }
         );
       }
@@ -174,7 +177,7 @@ export function createOpenAICompatibleProvider(
 
     async ping() {
       if (cfg.requireKey && !cfg.apiKey) {
-        throw new ProviderError('未配置 API key');
+        throw new ProviderError(i18n.t('errors.providerNoKeyShort'));
       }
       const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/models`, {
         headers: authHeader(),
@@ -182,7 +185,11 @@ export function createOpenAICompatibleProvider(
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new ProviderError(
-          `${cfg.displayName} ping 失败：${res.status} — ${text.slice(0, 200)}`
+          i18n.t('errors.providerPingFailed', {
+            name: cfg.displayName,
+            status: res.status,
+            body: text.slice(0, 200),
+          })
         );
       }
       return true;

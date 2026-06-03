@@ -1,19 +1,22 @@
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
-import type { FlowNode, RouterNodeData } from '../types';
+import type { FlowNode, ProviderId, RouterNodeData } from '../types';
+import { MODEL_OPTIONS } from '../providers/models';
 
 interface Props {
   node: FlowNode & { data: RouterNodeData };
 }
 
 export function RouterInspector({ node }: Props) {
+  const { t } = useTranslation();
   const update = useWorkflowStore((s) => s.updateNodeData);
   const remove = useWorkflowStore((s) => s.removeNode);
   const d = node.data;
   return (
     <div className="space-y-3">
       <div>
-        <div className="label mb-1">名字</div>
+        <div className="label mb-1">{t('inspector.name')}</div>
         <input
           className="input"
           value={d.name}
@@ -21,7 +24,7 @@ export function RouterInspector({ node }: Props) {
         />
       </div>
       <div>
-        <div className="label mb-1">分流规则</div>
+        <div className="label mb-1">{t('routerInspector.ruleLabel')}</div>
         <select
           className="input"
           value={d.rule}
@@ -29,23 +32,71 @@ export function RouterInspector({ node }: Props) {
             update(node.id, { rule: e.target.value as RouterNodeData['rule'] })
           }
         >
-          <option value="llm-judge">AI 判断（让模型选分支）</option>
-          <option value="regex">正则匹配</option>
+          <option value="llm-judge">{t('routerInspector.ruleLlmJudge')}</option>
+          <option value="regex">{t('routerInspector.ruleRegex')}</option>
         </select>
       </div>
       {d.rule === 'regex' ? (
         <div>
-          <div className="label mb-1">正则 pattern</div>
+          <div className="label mb-1">{t('routerInspector.patternLabel')}</div>
           <input
             className="input font-mono"
             value={d.pattern}
             onChange={(e) => update(node.id, { pattern: e.target.value })}
-            placeholder="^是$"
+            placeholder={t('routerInspector.patternPlaceholder')}
           />
         </div>
-      ) : null}
+      ) : (
+        <>
+          <div>
+            <div className="label mb-1">{t('routerInspector.judgePromptLabel')}</div>
+            <textarea
+              className="input min-h-[80px] resize-y text-[13px]"
+              value={d.prompt ?? ''}
+              placeholder={t('routerInspector.judgePromptPlaceholder')}
+              onChange={(e) => update(node.id, { prompt: e.target.value })}
+            />
+            <div className="mt-1 text-[10px] text-muted">{t('routerInspector.judgeHint')}</div>
+          </div>
+          <div>
+            <div className="label mb-1">{t('fields.provider')}</div>
+            <select
+              className="input"
+              value={d.provider ?? 'openrouter'}
+              onChange={(e) => {
+                const provider = e.target.value as ProviderId;
+                const firstModel = MODEL_OPTIONS[provider][0]?.id ?? '';
+                update(node.id, { provider, model: firstModel });
+              }}
+            >
+              <option value="anthropic">Anthropic</option>
+              <option value="openai">OpenAI</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="ollama">{t('providers.ollamaLocal')}</option>
+              <option value="lmstudio">{t('providers.lmstudioLocal')}</option>
+            </select>
+          </div>
+          <div>
+            <div className="label mb-1">{t('fields.model')}</div>
+            <input
+              className="input font-mono text-[12px]"
+              list={`router-models-${d.provider ?? 'openrouter'}`}
+              value={d.model ?? ''}
+              onChange={(e) => update(node.id, { model: e.target.value })}
+              placeholder={t('agentInspector.modelPlaceholder')}
+            />
+            <datalist id={`router-models-${d.provider ?? 'openrouter'}`}>
+              {MODEL_OPTIONS[d.provider ?? 'openrouter'].map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </datalist>
+          </div>
+        </>
+      )}
       <button className="btn-danger w-full" onClick={() => remove(node.id)}>
-        <Trash2 size={14} /> 删除节点
+        <Trash2 size={14} /> {t('inspector.deleteNode')}
       </button>
     </div>
   );

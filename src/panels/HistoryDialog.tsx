@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { deleteRun, loadRuns, type RunRecord } from '../storage/db';
 
 interface Props {
@@ -14,6 +15,7 @@ const STATUS_COLOR: Record<RunRecord['status'], string> = {
 };
 
 export function HistoryDialog({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -38,7 +40,7 @@ export function HistoryDialog({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <div className="text-base font-semibold text-ink">运行历史</div>
+          <div className="text-base font-semibold text-ink">{t('history.title')}</div>
           <button className="btn-ghost" onClick={onClose}>
             <X size={16} />
           </button>
@@ -46,7 +48,7 @@ export function HistoryDialog({ open, onClose }: Props) {
         <div className="flex-1 overflow-auto px-2 py-2">
           {runs.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted">
-              暂无历史。运行工作流后会自动保存到这里（最多保留 200 条）。
+              {t('history.empty')}
             </div>
           ) : (
             <ul className="space-y-1">
@@ -63,7 +65,7 @@ export function HistoryDialog({ open, onClose }: Props) {
                         {r.workflowName}
                       </span>
                       <span className={`text-[11px] ${STATUS_COLOR[r.status]}`}>
-                        {r.status}
+                        {t(`history.status.${r.status}`, { defaultValue: r.status })}
                       </span>
                       <span className="text-[11px] text-muted">
                         {new Date(r.startedAt).toLocaleString()} ·{' '}
@@ -82,10 +84,10 @@ export function HistoryDialog({ open, onClose }: Props) {
                     </div>
                     {expanded ? (
                       <div className="space-y-3 border-t border-line bg-bg px-3 py-3 text-[12px]">
-                        <Section title="输入" body={r.triggerInput} />
-                        <Section title="最终输出" body={r.finalOutput} />
+                        <Section title={t('history.input')} body={r.triggerInput} />
+                        <Section title={t('history.finalOutput')} body={r.finalOutput} />
                         <div>
-                          <div className="label mb-1">各节点输出</div>
+                          <div className="label mb-1">{t('history.nodeOutputs')}</div>
                           <div className="space-y-2">
                             {Object.values(r.nodeOutputs).map((n, i) => (
                               <div key={i} className="rounded bg-bg-soft p-2">
@@ -94,11 +96,11 @@ export function HistoryDialog({ open, onClose }: Props) {
                                     {n.name}
                                   </span>
                                   <span className="text-[10px] text-muted">
-                                    {n.status}
+                                    {t(`history.status.${n.status}`, { defaultValue: n.status })}
                                   </span>
                                 </div>
                                 <pre className="whitespace-pre-wrap break-words text-ink/80">
-                                  {n.output || '(空)'}
+                                  {n.output || t('common.empty')}
                                 </pre>
                               </div>
                             ))}
@@ -118,11 +120,12 @@ export function HistoryDialog({ open, onClose }: Props) {
 }
 
 function Section({ title, body }: { title: string; body: string }) {
+  const { t } = useTranslation();
   return (
     <div>
       <div className="label mb-1">{title}</div>
       <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-bg-soft p-2 text-ink/80">
-        {body || '(空)'}
+        {body || t('common.empty')}
       </pre>
     </div>
   );

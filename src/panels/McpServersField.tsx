@@ -4,6 +4,7 @@ import {
   Activity, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import { useTranslation } from 'react-i18next';
 import type { McpServerConfig, ProviderId } from '../types';
 import { McpHttpClient } from '../mcp/client';
 
@@ -21,6 +22,7 @@ interface TestResult {
 }
 
 export function McpServersField({ value, onChange, provider }: Props) {
+  const { t } = useTranslation();
   const [openId, setOpenId] = useState<string | null>(null);
   const [tests, setTests] = useState<Record<string, TestResult>>({});
 
@@ -34,8 +36,7 @@ export function McpServersField({ value, onChange, provider }: Props) {
         ...p,
         [s.id]: {
           state: 'fail',
-          message:
-            'remote 模式由 Anthropic 服务器连，浏览器测不了。切到 local 测，或直接运行工作流验证。',
+          message: t('mcp.testRemoteUnsupported'),
         },
       }));
       return;
@@ -44,7 +45,7 @@ export function McpServersField({ value, onChange, provider }: Props) {
     if (!s.url) {
       setTests((p) => ({
         ...p,
-        [s.id]: { state: 'fail', message: 'URL 是空的' },
+        [s.id]: { state: 'fail', message: t('mcp.urlEmpty') },
       }));
       return;
     }
@@ -123,11 +124,11 @@ export function McpServersField({ value, onChange, provider }: Props) {
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <span className="label">MCP 工具</span>
+        <span className="label">{t('mcp.title')}</span>
         <button
           className="rounded p-1 text-muted hover:bg-panel hover:text-ink"
           onClick={add}
-          title="添加 MCP server"
+          title={t('mcp.addTitle')}
         >
           <Plus size={12} />
         </button>
@@ -136,22 +137,21 @@ export function McpServersField({ value, onChange, provider }: Props) {
       {hasUnsupportedRemote ? (
         <div className="mb-2 flex items-start gap-1.5 rounded border border-amber-400/30 bg-amber-400/5 p-2 text-[10px] text-amber-200/90">
           <AlertTriangle size={11} className="mt-0.5 shrink-0" />
-          <span>
-            「remote」MCP 只有 Anthropic provider 生效。当前 provider ({provider})
-            的 remote server 会被忽略；改成 local 即可生效。
-          </span>
+          <span>{t('mcp.remoteOnlyAnthropic', { provider })}</span>
         </div>
       ) : null}
       {hasUnsupportedLocal ? (
         <div className="mb-2 flex items-start gap-1.5 rounded border border-amber-400/30 bg-amber-400/5 p-2 text-[10px] text-amber-200/90">
           <AlertTriangle size={11} className="mt-0.5 shrink-0" />
-          <span>Ollama provider 暂不支持工具调用，MCP 配置会被忽略。</span>
+          <span>{t('mcp.ollamaNoTools')}</span>
         </div>
       ) : null}
 
       {value.length === 0 ? (
         <div className="rounded border border-dashed border-line p-2 text-center text-[10px] text-muted">
-          点 + 添加。<br />local = 浏览器直连（需 CORS）；remote = Anthropic 转发。
+          {t('mcp.emptyHint')}
+          <br />
+          {t('mcp.emptyHint2')}
         </div>
       ) : (
         <ul className="space-y-1">
@@ -176,7 +176,7 @@ export function McpServersField({ value, onChange, provider }: Props) {
                       s.enabled ? 'text-ink' : 'text-muted line-through'
                     }`}
                   >
-                    {s.name || '(未命名)'}
+                    {s.name || t('mcp.unnamed')}
                   </span>
                   <TestBadge result={tests[s.id]} />
                   <button
@@ -185,14 +185,14 @@ export function McpServersField({ value, onChange, provider }: Props) {
                       e.stopPropagation();
                       remove(s.id);
                     }}
-                    title="删除"
+                    title={t('common.delete')}
                   >
                     <Trash2 size={11} />
                   </button>
                 </div>
                 {open ? (
                   <div className="space-y-2 border-t border-line px-2 py-2 text-[11px]">
-                    <Field label="Transport">
+                    <Field label={t('mcp.transport')}>
                       <div className="flex gap-1">
                         <button
                           className={`flex-1 rounded px-2 py-1 text-[11px] ${
@@ -202,7 +202,7 @@ export function McpServersField({ value, onChange, provider }: Props) {
                           }`}
                           onClick={() => update(s.id, { transport: 'local' })}
                         >
-                          local（浏览器直连）
+                          {t('mcp.transportLocal')}
                         </button>
                         <button
                           className={`flex-1 rounded px-2 py-1 text-[11px] ${
@@ -212,26 +212,26 @@ export function McpServersField({ value, onChange, provider }: Props) {
                           }`}
                           onClick={() => update(s.id, { transport: 'remote' })}
                         >
-                          remote（Anthropic 转发）
+                          {t('mcp.transportRemote')}
                         </button>
                       </div>
                     </Field>
-                    <Field label="Name">
+                    <Field label={t('mcp.name')}>
                       <input
                         className="input h-7 text-[11px]"
                         value={s.name}
                         onChange={(e) => update(s.id, { name: e.target.value })}
                       />
                     </Field>
-                    <Field label="URL">
+                    <Field label={t('mcp.url')}>
                       <input
                         className="input h-7 text-[11px] font-mono"
                         value={s.url}
-                        placeholder="https://your-server.example.com/mcp"
+                        placeholder={t('mcp.urlPlaceholder')}
                         onChange={(e) => update(s.id, { url: e.target.value })}
                       />
                     </Field>
-                    <Field label="Authorization token（可选）">
+                    <Field label={t('mcp.authToken')}>
                       <input
                         className="input h-7 text-[11px] font-mono"
                         type="password"
@@ -241,11 +241,11 @@ export function McpServersField({ value, onChange, provider }: Props) {
                         }
                       />
                     </Field>
-                    <Field label="允许的工具（逗号分隔，留空 = 全部）">
+                    <Field label={t('mcp.allowedTools')}>
                       <input
                         className="input h-7 text-[11px] font-mono"
                         value={(s.allowedTools ?? []).join(',')}
-                        placeholder="search_docs, list_files"
+                        placeholder={t('mcp.allowedToolsPlaceholder')}
                         onChange={(e) => {
                           const arr = e.target.value
                             .split(',')
@@ -264,11 +264,11 @@ export function McpServersField({ value, onChange, provider }: Props) {
         </ul>
       )}
       <div className="mt-1 text-[10px] leading-relaxed text-muted">
-        <strong className="text-ink/70">local</strong>：浏览器直连 MCP server，
-        必须开 CORS 允许本站。
+        <strong className="text-ink/70">{t('mcp.footerLocal')}</strong>
+        {t('mcp.footerLocalDesc')}
         <br />
-        <strong className="text-ink/70">remote</strong>：Anthropic 服务器去连，
-        URL 必须公网可达。
+        <strong className="text-ink/70">{t('mcp.footerRemote')}</strong>
+        {t('mcp.footerRemoteDesc')}
       </div>
     </div>
   );
@@ -286,6 +286,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function TestBadge({ result }: { result?: TestResult }) {
+  const { t } = useTranslation();
   if (!result || result.state === 'idle') return null;
   if (result.state === 'testing') {
     return <Loader2 size={11} className="shrink-0 animate-spin text-muted" />;
@@ -294,7 +295,7 @@ function TestBadge({ result }: { result?: TestResult }) {
     return (
       <span
         className="flex shrink-0 items-center gap-0.5 text-[10px] text-emerald-400"
-        title={`已连接，发现 ${result.toolCount} 个工具`}
+        title={t('mcp.connectedBadge', { count: result.toolCount })}
       >
         <CheckCircle2 size={11} /> {result.toolCount}
       </span>
@@ -316,6 +317,7 @@ function TestPanel({
   result?: TestResult;
   onTest: () => void;
 }) {
+  const { t } = useTranslation();
   const r = result ?? { state: 'idle' as const };
   return (
     <div className="border-t border-line/60 pt-2">
@@ -329,12 +331,12 @@ function TestPanel({
         ) : (
           <Activity size={11} />
         )}
-        测试连接
+        {t('mcp.testConnection')}
       </button>
       {r.state === 'ok' ? (
         <div className="mt-1.5 rounded bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-200/90">
           <div className="flex items-center gap-1 font-semibold">
-            <CheckCircle2 size={10} /> 连接成功 · 发现 {r.toolCount} 个工具
+            <CheckCircle2 size={10} /> {t('mcp.connected', { count: r.toolCount })}
           </div>
           {r.toolNames && r.toolNames.length > 0 ? (
             <div className="mt-1 font-mono text-emerald-200/70 break-words">
@@ -346,7 +348,7 @@ function TestPanel({
       {r.state === 'fail' ? (
         <div className="mt-1.5 rounded bg-accent-danger/10 px-2 py-1 text-[10px] text-accent-danger">
           <div className="flex items-center gap-1 font-semibold">
-            <AlertCircle size={10} /> 连接失败
+            <AlertCircle size={10} /> {t('mcp.connectFailed')}
           </div>
           <div className="mt-1 break-words">{r.message}</div>
         </div>

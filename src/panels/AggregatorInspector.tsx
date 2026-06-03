@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { AggregatorNodeData, FlowNode } from '../types';
 
@@ -7,13 +8,14 @@ interface Props {
 }
 
 export function AggregatorInspector({ node }: Props) {
+  const { t } = useTranslation();
   const update = useWorkflowStore((s) => s.updateNodeData);
   const remove = useWorkflowStore((s) => s.removeNode);
   const d = node.data;
   return (
     <div className="space-y-3">
       <div>
-        <div className="label mb-1">名字</div>
+        <div className="label mb-1">{t('inspector.name')}</div>
         <input
           className="input"
           value={d.name}
@@ -21,7 +23,7 @@ export function AggregatorInspector({ node }: Props) {
         />
       </div>
       <div>
-        <div className="label mb-1">汇总策略</div>
+        <div className="label mb-1">{t('aggregatorInspector.strategyLabel')}</div>
         <select
           className="input"
           value={d.strategy}
@@ -31,14 +33,14 @@ export function AggregatorInspector({ node }: Props) {
             })
           }
         >
-          <option value="concat">拼接（直接连起来）</option>
-          <option value="json-merge">JSON 合并</option>
-          <option value="pick-first">取第一个返回</option>
-          <option value="summarize">AI 总结（需配置 agent）</option>
+          <option value="concat">{t('aggregatorInspector.concat')}</option>
+          <option value="json-merge">{t('aggregatorInspector.jsonMerge')}</option>
+          <option value="pick-first">{t('aggregatorInspector.pickFirst')}</option>
+          <option value="summarize">{t('aggregatorInspector.summarize')}</option>
         </select>
       </div>
       <button className="btn-danger w-full" onClick={() => remove(node.id)}>
-        <Trash2 size={14} /> 删除节点
+        <Trash2 size={14} /> {t('inspector.deleteNode')}
       </button>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { RagScope, RagSourceRecord } from '../storage/db';
 import {
   addRagSource,
@@ -32,13 +33,16 @@ export function RagSourcesPanel({
   workflowId,
   scope,
   agentNodeId,
-  title = scope === 'shared' ? '共享资料库' : '私有资料库',
+  title: titleProp,
   compact = false,
 }: Props) {
+  const { t } = useTranslation();
+  const title =
+    titleProp ?? t(scope === 'shared' ? 'rag.sharedLibrary' : 'rag.privateLibrary');
   const [sources, setSources] = useState<RagSourceRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
-  const [newName, setNewName] = useState('未命名.md');
+  const [newName, setNewName] = useState(() => t('rag.defaultName'));
   const [newContent, setNewContent] = useState('');
   const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,14 +99,14 @@ export function RagSourcesPanel({
   };
 
   const createManual = async () => {
-    await addText(newName || '未命名.md', newContent);
+    await addText(newName || t('rag.defaultName'), newContent);
     setNewOpen(false);
-    setNewName('未命名.md');
+    setNewName(t('rag.defaultName'));
     setNewContent('');
   };
 
   const remove = async (id: string) => {
-    if (!confirm('确定删除这份资料？索引也会一起删除。')) return;
+    if (!confirm(t('rag.deleteConfirm'))) return;
     await deleteRagSource(id);
     await refresh();
   };
@@ -126,21 +130,21 @@ export function RagSourcesPanel({
             <span className="label">{title}</span>
           </div>
           <div className="text-[10px] text-muted">
-            {sources.length} 文件 · {totalChars} 字符
+            {t('rag.stats', { files: sources.length, chars: totalChars })}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
             className="rounded p-1 text-muted hover:bg-panel hover:text-ink"
             onClick={() => setNewOpen((v) => !v)}
-            title="新建文本资料"
+            title={t('rag.newTitle')}
           >
             <FilePlus size={12} />
           </button>
           <button
             className="rounded p-1 text-muted hover:bg-panel hover:text-ink"
             onClick={() => fileInputRef.current?.click()}
-            title="上传文本资料"
+            title={t('rag.uploadTitle')}
             disabled={busy}
           >
             <Upload size={12} />
@@ -148,7 +152,7 @@ export function RagSourcesPanel({
           <button
             className="rounded p-1 text-muted hover:bg-panel hover:text-ink"
             onClick={() => refresh().catch(console.error)}
-            title="刷新"
+            title={t('common.refresh')}
           >
             <RefreshCw size={12} />
           </button>
@@ -180,10 +184,10 @@ export function RagSourcesPanel({
           />
           <div className="flex justify-end gap-1">
             <button className="btn-ghost h-7 px-2 text-[11px]" onClick={() => setNewOpen(false)}>
-              取消
+              {t('common.cancel')}
             </button>
             <button className="btn-primary h-7 px-2 text-[11px]" onClick={createManual} disabled={busy}>
-              创建
+              {t('common.create')}
             </button>
           </div>
         </div>
@@ -191,13 +195,13 @@ export function RagSourcesPanel({
 
       {busy ? (
         <div className="flex items-center gap-1.5 rounded border border-line bg-bg-soft p-2 text-[11px] text-muted">
-          <Loader2 size={12} className="animate-spin" /> 正在处理资料…
+          <Loader2 size={12} className="animate-spin" /> {t('rag.processing')}
         </div>
       ) : null}
 
       {sources.length === 0 ? (
         <div className="rounded border border-dashed border-line p-3 text-center text-[11px] text-muted">
-          上传文本文件后会自动建立本地索引
+          {t('rag.empty')}
         </div>
       ) : (
         <div className={compact ? 'space-y-1' : 'grid min-h-0 grid-cols-[18rem_1fr] gap-3'}>
@@ -221,7 +225,7 @@ export function RagSourcesPanel({
                     e.stopPropagation();
                     remove(s.id).catch(console.error);
                   }}
-                  title="删除"
+                  title={t('common.delete')}
                 >
                   <Trash2 size={11} />
                 </button>
@@ -261,18 +265,19 @@ function SourcePreview({
   onReindex: () => Promise<void>;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="min-w-0 rounded border border-line bg-bg-soft">
       <div className="flex items-center gap-2 border-b border-line px-2 py-1.5 text-[11px]">
         <span className="min-w-0 flex-1 truncate font-mono text-ink">{source.name}</span>
         <span className="text-[10px] text-muted">{formatSize(source.size)}</span>
         <button className="btn-ghost h-7 px-2 text-[11px]" onClick={() => onReindex().catch(console.error)}>
-          <RefreshCw size={11} /> 重建
+          <RefreshCw size={11} /> {t('rag.rebuild')}
         </button>
       </div>
       {source.status === 'error' ? (
         <div className="p-2 text-[11px] text-accent-danger">
-          {source.error || '索引失败'}
+          {source.error || t('rag.indexFailed')}
         </div>
       ) : null}
       <pre
@@ -280,7 +285,7 @@ function SourcePreview({
           compact ? 'max-h-40' : 'max-h-[28rem]'
         }`}
       >
-        {source.content || '(空)'}
+        {source.content || t('common.empty')}
       </pre>
     </div>
   );

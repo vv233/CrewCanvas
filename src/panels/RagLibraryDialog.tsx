@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import { RagSourcesPanel } from './RagSourcesPanel';
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function RagLibraryDialog({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const workflow = useWorkflowStore((s) => s.workflow);
   if (!open) return null;
 
@@ -22,15 +24,17 @@ export function RagLibraryDialog({ open, onClose }: Props) {
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <div>
-            <div className="text-base font-semibold text-ink">资料库</div>
-            <div className="text-[11px] text-muted">当前工作流：{workflow.name}</div>
+            <div className="text-base font-semibold text-ink">{t('ragLibrary.title')}</div>
+            <div className="text-[11px] text-muted">
+              {t('ragLibrary.currentWorkflow', { name: workflow.name })}
+            </div>
           </div>
           <button className="btn-ghost" onClick={onClose}>
             <X size={16} />
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-4">
-          <RagSourcesPanel workflowId={workflow.id} scope="shared" title="共享资料库" />
+          <RagSourcesPanel workflowId={workflow.id} scope="shared" title={t('rag.sharedLibrary')} />
         </div>
       </div>
     </div>

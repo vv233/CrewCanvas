@@ -1,16 +1,12 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { RoomNodeData } from '../../types';
 import { useRunStore } from '../../state/runStore';
 import { StatusDot } from './StatusDot';
 
-const MODE_LABEL: Record<RoomNodeData['mode'], string> = {
-  'round-robin': '轮询',
-  moderator: '主持人',
-  race: '抢答',
-};
-
 export function RoomNode({ data, selected, id }: NodeProps & { data: RoomNodeData }) {
+  const { t } = useTranslation();
   const state = useRunStore((s) => s.nodeStates[id]);
   return (
     <div
@@ -38,7 +34,10 @@ export function RoomNode({ data, selected, id }: NodeProps & { data: RoomNodeDat
             <StatusDot status={state?.status ?? 'idle'} />
           </div>
           <div className="text-[11px] text-muted">
-            群聊室 · {MODE_LABEL[data.mode]} · 最多 {data.maxRounds} 轮
+            {t('nodes.room.summary', {
+              mode: t(`nodes.room.modes.${data.mode}`),
+              rounds: data.maxRounds,
+            })}
           </div>
         </div>
       </div>

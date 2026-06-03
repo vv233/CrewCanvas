@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { NodeRunState } from '../types';
+import i18n from '../i18n';
 
 export interface DiscussionMessage {
   role: 'user' | 'assistant';
@@ -105,7 +106,7 @@ export const useRunStore = create<RunStore>((set) => ({
             {
               ts: Date.now(),
               level: 'info' as const,
-              msg: '◆ 输出\n' + text,
+              msg: i18n.t('store.outputLog', { text }),
               nodeId: id,
             },
           ].slice(-500);

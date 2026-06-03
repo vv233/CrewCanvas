@@ -4,6 +4,7 @@ import {
   replaceRagSourcesForWorkflow,
   type RagSourceExport,
 } from '../rag/store';
+import i18n from '../i18n';
 
 interface WorkflowExportBundle {
   workflow: Workflow;
@@ -29,7 +30,7 @@ export async function importWorkflowJSON(text: string): Promise<Workflow> {
   const parsed = JSON.parse(text) as Workflow | WorkflowExportBundle;
   const wf = isWorkflowExportBundle(parsed) ? parsed.workflow : parsed;
   if (!wf.nodes || !wf.edges) {
-    throw new Error('JSON 不像是工作流（缺少 nodes / edges）');
+    throw new Error(i18n.t('errors.importNotWorkflow'));
   }
   const next = {
     ...wf,

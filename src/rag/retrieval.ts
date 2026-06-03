@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 export const RAG_CHUNK_SIZE = 1200;
 export const RAG_CHUNK_OVERLAP = 200;
 export const RAG_MAX_RESULTS = 6;
@@ -119,19 +121,19 @@ export function formatRagContext(
 ): string {
   if (results.length === 0) return '';
   const parts: string[] = [
-    '## 相关知识片段（自动检索）',
+    i18n.t('ragRuntime.contextHeader'),
     '',
-    '以下内容来自当前工作流的共享知识库和该 AI 的私有知识库。回答时优先参考；如果片段不足，请说明不确定。',
+    i18n.t('ragRuntime.contextIntro'),
   ];
   let used = parts.join('\n').length;
   for (const r of results) {
-    const header = `\n\n### ${r.sourceName} · 片段 ${r.chunkIndex + 1}`;
+    const header = `\n\n### ${r.sourceName} · ${i18n.t('ragRuntime.snippet')} ${r.chunkIndex + 1}`;
     const body = r.text.trim();
     const nextLen = header.length + body.length;
     if (used + nextLen > charLimit) {
       const remaining = charLimit - used - header.length - 20;
       if (remaining > 200) {
-        parts.push(header, body.slice(0, remaining).trim() + '\n[已截断]');
+        parts.push(header, body.slice(0, remaining).trim() + '\n' + i18n.t('ragRuntime.truncated'));
       }
       break;
     }

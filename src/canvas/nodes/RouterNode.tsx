@@ -1,8 +1,10 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { RouterNodeData } from '../../types';
 
 export function RouterNode({ data, selected }: NodeProps & { data: RouterNodeData }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`card min-w-[180px] px-3 py-2 ${
@@ -17,7 +19,7 @@ export function RouterNode({ data, selected }: NodeProps & { data: RouterNodeDat
         <div>
           <div className="text-sm font-semibold text-ink">{data.name}</div>
           <div className="text-[11px] text-muted">
-            分流 · {data.rule === 'llm-judge' ? 'AI 判断' : '正则'}
+            {t('nodes.router.summary', { rule: t(`nodes.router.rules.${data.rule}`) })}
           </div>
         </div>
       </div>

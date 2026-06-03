@@ -34,7 +34,7 @@ const DEFAULTS: SettingsState = {
   lmstudioKey: '',
   syncEndpoint: '',
   syncToken: '',
-  language: 'zh',
+  language: 'en',
   acknowledgedBrowserKeyWarning: false,
 };
 

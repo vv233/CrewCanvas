@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { MessageSquare, Send, CheckCheck, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { DiscussNodeData } from '../../types';
 import { useRunStore } from '../../state/runStore';
 import { StatusDot } from './StatusDot';
@@ -10,6 +11,7 @@ export function DiscussNode({
   selected,
   id,
 }: NodeProps & { data: DiscussNodeData }) {
+  const { t } = useTranslation();
   const state = useRunStore((s) => s.nodeStates[id]);
   const discussion = useRunStore((s) => s.discussions[id]);
   const send = useRunStore((s) => s.sendDiscussionMessage);
@@ -66,14 +68,14 @@ export function DiscussNode({
             <StatusDot status={state?.status ?? 'idle'} />
           </div>
           <div className="truncate text-[11px] text-muted">
-            与用户讨论 · {data.provider}/{data.model}
+            {t('nodes.discuss.subtitle')} · {data.provider}/{data.model}
           </div>
         </div>
       </div>
 
       {!discussion ? (
         <div className="px-3 py-4 text-center text-[11px] text-muted">
-          运行到此节点时会暂停，等你和 AI 讨论
+          {t('nodes.discuss.pauseHint')}
         </div>
       ) : (
         <>
@@ -83,7 +85,7 @@ export function DiscussNode({
           >
             {messages.length === 0 && phase === 'thinking' ? (
               <div className="flex items-center gap-1.5 text-muted">
-                <Loader2 size={11} className="animate-spin" /> AI 正在准备开场…
+                <Loader2 size={11} className="animate-spin" /> {t('nodes.discuss.preparing')}
               </div>
             ) : null}
             {messages.map((m, i) => (
@@ -96,31 +98,31 @@ export function DiscussNode({
                 }
               >
                 <div className="mb-0.5 text-[10px] font-semibold text-muted">
-                  {m.role === 'user' ? '你' : 'AI'}
+                  {m.role === 'user' ? t('nodes.discuss.you') : t('nodes.discuss.ai')}
                 </div>
                 <div className="whitespace-pre-wrap break-words">{m.content}</div>
               </div>
             ))}
             {phase === 'thinking' && messages[messages.length - 1]?.role === 'user' ? (
               <div className="flex items-center gap-1.5 text-muted">
-                <Loader2 size={11} className="animate-spin" /> AI 思考中…
+                <Loader2 size={11} className="animate-spin" /> {t('nodes.discuss.thinking')}
               </div>
             ) : null}
           </div>
 
           {phase === 'done' ? (
             <div className="border-t border-line/60 bg-emerald-400/5 px-3 py-2 text-[11px] text-emerald-300">
-              <CheckCheck size={12} className="mr-1 inline" /> 讨论已完成，结果已传给下游
+              <CheckCheck size={12} className="mr-1 inline" /> {t('nodes.discuss.done')}
             </div>
           ) : !isLive ? (
             <div className="border-t border-line/60 px-3 py-2 text-[11px] text-muted">
-              未在运行中
+              {t('nodes.discuss.notRunning')}
             </div>
           ) : finishMode ? (
             <div className="space-y-2 border-t border-line/60 px-3 py-2">
               <textarea
                 className="nodrag input min-h-[60px] resize-y text-[12px]"
-                placeholder="可选：写一段最终方案作为下游输入。留空则用最后一条 AI 回复。"
+                placeholder={t('nodes.discuss.summaryPlaceholder')}
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
@@ -130,13 +132,13 @@ export function DiscussNode({
                   className="btn-ghost h-7 flex-1 text-[12px]"
                   onClick={() => setFinishMode(false)}
                 >
-                  取消
+                  {t('common.cancel')}
                 </button>
                 <button
                   className="btn-primary h-7 flex-1 text-[12px]"
                   onClick={handleFinish}
                 >
-                  <CheckCheck size={12} /> 完成
+                  <CheckCheck size={12} /> {t('nodes.discuss.finish')}
                 </button>
               </div>
             </div>
@@ -146,7 +148,9 @@ export function DiscussNode({
                 <textarea
                   className="nodrag input min-h-[36px] resize-y text-[12px]"
                   placeholder={
-                    phase === 'thinking' ? 'AI 回复中…' : '回复 AI（Enter 发送，Shift+Enter 换行）'
+                    phase === 'thinking'
+                      ? t('nodes.discuss.replyingPlaceholder')
+                      : t('nodes.discuss.replyPlaceholder')
                   }
                   value={draft}
                   disabled={phase === 'thinking'}
@@ -166,14 +170,14 @@ export function DiscussNode({
                   onClick={() => setFinishMode(true)}
                   disabled={messages.length === 0}
                 >
-                  <CheckCheck size={11} /> 完成讨论
+                  <CheckCheck size={11} /> {t('nodes.discuss.finishDiscussion')}
                 </button>
                 <button
                   className="btn-primary h-6 flex-1 text-[11px]"
                   onClick={handleSend}
                   disabled={phase === 'thinking' || !draft.trim()}
                 >
-                  <Send size={11} /> 发送
+                  <Send size={11} /> {t('nodes.discuss.send')}
                 </button>
               </div>
             </div>

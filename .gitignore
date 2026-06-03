@@ -11,15 +11,6 @@ dist
 # TypeScript incremental cache
 *.tsbuildinfo
 
-# Python venvs for MCP tools (huge — recreate with pip install -r requirements.txt)
-tools/*/.venv
-tools/*/__pycache__
-tools/**/*.pyc
-
-# Local persistent data of MCP servers
-tools/chroma-mcp/chroma_db
-tools/chroma-mcp/_smoke_db
-
 # Draft TS templates (intentionally not compiled, see tsconfig exclude)
 src/**/*.draft.ts
 src/**/*.tpl.ts

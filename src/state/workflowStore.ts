@@ -18,6 +18,7 @@ import type {
   Workflow,
 } from '../types';
 import { defaultNodeData } from '../lib/nodeFactory';
+import i18n from '../i18n';
 
 const STORAGE_KEY = 'aiof.workflow.v1';
 
@@ -84,7 +85,7 @@ function sortByParent(nodes: FlowNode[]): FlowNode[] {
 function emptyWorkflow(): Workflow {
   return {
     id: nanoid(),
-    name: '未命名工作流',
+    name: i18n.t('store.untitledWorkflow'),
     nodes: [],
     edges: [],
     variables: {},
@@ -110,7 +111,7 @@ function seedWorkflow(): Workflow {
   const triggerId = nanoid();
   const agentId = nanoid();
   const outputId = nanoid();
-  wf.name = '你好世界';
+  wf.name = i18n.t('store.demoName');
   wf.nodes = [
     {
       id: triggerId,
@@ -122,7 +123,7 @@ function seedWorkflow(): Workflow {
       id: agentId,
       type: 'agent',
       position: { x: 380, y: 180 },
-      data: { ...defaultNodeData('agent'), name: '助理小爱' } as AnyNodeData,
+      data: { ...defaultNodeData('agent'), name: i18n.t('store.demoAssistant') } as AnyNodeData,
     },
     {
       id: outputId,

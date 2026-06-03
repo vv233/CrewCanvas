@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import { AgentInspector } from './AgentInspector';
 import { TriggerInspector } from './TriggerInspector';
@@ -9,6 +10,7 @@ import { DiscussInspector } from './DiscussInspector';
 import { EdgeInspector } from './EdgeInspector';
 
 export function Inspector() {
+  const { t } = useTranslation();
   const workflow = useWorkflowStore((s) => s.workflow);
   const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId);
   const selectedEdgeId = useWorkflowStore((s) => s.selectedEdgeId);
@@ -19,13 +21,13 @@ export function Inspector() {
   return (
     <div className="flex h-full w-80 shrink-0 flex-col border-l border-line bg-bg-soft">
       <div className="border-b border-line px-3 py-2">
-        <div className="label">检查器</div>
+        <div className="label">{t('inspector.heading')}</div>
         <div className="mt-1 text-[11px] text-muted">
           {node
-            ? `节点 · ${node.type}`
+            ? t('inspector.nodeLabel', { type: node.type })
             : edge
-            ? '连线'
-            : '未选中（点击节点或连线编辑）'}
+            ? t('inspector.edge')
+            : t('inspector.none')}
         </div>
       </div>
       <div className="flex-1 overflow-auto p-3">
@@ -47,12 +49,12 @@ export function Inspector() {
           <EdgeInspector edge={edge} />
         ) : (
           <div className="text-xs text-muted">
-            <p>提示：</p>
+            <p>{t('inspector.hintsTitle')}</p>
             <ul className="mt-2 list-disc space-y-1 pl-4">
-              <li>从左侧拖出节点</li>
-              <li>拖动节点端口连线</li>
-              <li>点击连线改变沟通方式</li>
-              <li>点击 AI 节点编辑 soul.md</li>
+              <li>{t('inspector.hintDrag')}</li>
+              <li>{t('inspector.hintConnect')}</li>
+              <li>{t('inspector.hintClickEdge')}</li>
+              <li>{t('inspector.hintClickAgent')}</li>
             </ul>
           </div>
         )}

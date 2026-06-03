@@ -15,6 +15,7 @@ import type { AnyNodeData } from '../types';
 import { defaultNodeData } from '../lib/nodeFactory';
 import { SOUL_PRESETS } from './soulPresets';
 import type { WorkflowTemplate } from './workflowTemplates';
+import i18n from '../i18n';
 
 declare global {
   interface Window {
@@ -31,7 +32,7 @@ interface TemplateGlobals {
 
 function presetAgent(presetId: string): AnyNodeData {
   const preset = SOUL_PRESETS.find((p) => p.id === presetId);
-  if (!preset) throw new Error(`未知 soul 预设: "${presetId}"`);
+  if (!preset) throw new Error(i18n.t('importTs.errUnknownPreset', { id: presetId }));
   const base = defaultNodeData('agent') as Extract<AnyNodeData, { kind: 'agent' }>;
   return { ...base, name: preset.name, avatar: preset.avatar, soul: preset.soul };
 }
@@ -104,7 +105,9 @@ export async function compileTemplateSource(
     jsCode = result.code;
   } catch (err) {
     throw new TemplateCompileError(
-      `TypeScript 编译失败: ${err instanceof Error ? err.message : String(err)}`,
+      i18n.t('importTs.errCompileFailed', {
+        msg: err instanceof Error ? err.message : String(err),
+      }),
       err
     );
   }
@@ -117,7 +120,9 @@ export async function compileTemplateSource(
     mod = (await import(/* @vite-ignore */ blobUrl)) as { default?: unknown };
   } catch (err) {
     throw new TemplateCompileError(
-      `执行失败: ${err instanceof Error ? err.message : String(err)}`,
+      i18n.t('importTs.errExecFailed', {
+        msg: err instanceof Error ? err.message : String(err),
+      }),
       err
     );
   } finally {
@@ -132,60 +137,12 @@ export async function compileTemplateSource(
     typeof tpl.name !== 'string' ||
     typeof tpl.build !== 'function'
   ) {
-    throw new TemplateCompileError(
-      '模板必须 export default 一个含 { id: string, name: string, description?: string, build(): Workflow } 的对象'
-    );
+    throw new TemplateCompileError(i18n.t('importTs.errShape'));
   }
   return tpl as WorkflowTemplate;
 }
 
-export const EXAMPLE_TEMPLATE_TS = `// 可用的全局变量：nanoid, defaultNodeData, SOUL_PRESETS, presetAgent
-// 不能使用 import 语句
-
-interface Foo { id: string }  // TS 类型注解可写，会被剥离
-
-export default {
-  id: 'my-translator',
-  name: '我的翻译模板',
-  description: '一个最简单的翻译流：trigger → translator → output',
-  build() {
-    const trig = nanoid();
-    const ag = nanoid();
-    const out = nanoid();
-    return {
-      id: nanoid(),
-      name: '我的翻译模板',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      variables: {},
-      nodes: [
-        {
-          id: trig,
-          type: 'trigger',
-          position: { x: 40, y: 200 },
-          data: {
-            ...defaultNodeData('trigger'),
-            input: 'The quick brown fox jumps over the lazy dog.',
-          },
-        },
-        {
-          id: ag,
-          type: 'agent',
-          position: { x: 340, y: 200 },
-          data: presetAgent('translator'),
-        },
-        {
-          id: out,
-          type: 'output',
-          position: { x: 640, y: 200 },
-          data: defaultNodeData('output'),
-        },
-      ],
-      edges: [
-        { id: nanoid(), source: trig, target: ag,  type: 'pipe', data: { type: 'pipe' } },
-        { id: nanoid(), source: ag,   target: out, type: 'pipe', data: { type: 'pipe' } },
-      ],
-    };
-  },
-};
-`;
+/** Localized starter snippet shown in the import editor. */
+export function exampleTemplateTs(): string {
+  return i18n.t('importTs.exampleTs');
+}

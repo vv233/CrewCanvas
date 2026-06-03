@@ -2,7 +2,7 @@ import type { AnyNodeData, Workflow } from '../types';
 import { nanoid } from 'nanoid';
 import { SOUL_PRESETS } from './soulPresets';
 import { defaultNodeData } from '../lib/nodeFactory';
-import { MEMORY_TRADING_TEMPLATES } from './tradingMemory';
+import i18n from '../i18n';
 
 export interface WorkflowTemplate {
   id: string;
@@ -25,9 +25,12 @@ function presetAgent(presetId: string): AnyNodeData {
 export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'pm-eng-designer',
-    name: '产品三人组（线性流）',
-    description:
-      'PM 收到需求 → 工程师评估技术 → 设计师设计 UI → 输出综合方案',
+    get name() {
+      return i18n.t('templatesData.pmName');
+    },
+    get description() {
+      return i18n.t('templatesData.pmDesc');
+    },
     build(): Workflow {
       const trig = nanoid();
       const pm = nanoid();
@@ -36,7 +39,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       const out = nanoid();
       return {
         id: nanoid(),
-        name: '产品三人组',
+        name: i18n.t('templatesData.pmWorkflowName'),
         createdAt: Date.now(),
         updatedAt: Date.now(),
         variables: {},
@@ -47,7 +50,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             position: { x: 40, y: 220 },
             data: {
               ...defaultNodeData('trigger'),
-              input: '我想做一个可以让独立开发者快速搭建落地页的工具，目标用户是 indie hacker。',
+              input: i18n.t('templatesData.pmTriggerInput'),
             } as AnyNodeData,
           },
           { id: pm, type: 'agent', position: { x: 320, y: 80 }, data: presetAgent('pm') },
@@ -66,83 +69,4 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       };
     },
   },
-  {
-    id: 'debate-room',
-    name: '辩论会议室（群聊）',
-    description: '乐观派 vs 批评家在主持人引导下辩论，主持人最后总结结论',
-    build(): Workflow {
-      const trig = nanoid();
-      const room = nanoid();
-      const optimist = nanoid();
-      const critic = nanoid();
-      const moderator = nanoid();
-      const out = nanoid();
-      return {
-        id: nanoid(),
-        name: '辩论会议室',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        variables: {},
-        nodes: [
-          {
-            id: trig,
-            type: 'trigger',
-            position: { x: 20, y: 240 },
-            data: {
-              ...defaultNodeData('trigger'),
-              input: '辩论话题：远程办公是否应该成为科技公司的默认选项？',
-            } as AnyNodeData,
-          },
-          {
-            id: room,
-            type: 'room',
-            position: { x: 280, y: 140 },
-            data: {
-              ...defaultNodeData('room'),
-              name: '辩论会议室',
-              mode: 'moderator',
-              moderatorId: moderator,
-              maxRounds: 6,
-            } as AnyNodeData,
-            style: { width: 380, height: 320 },
-          },
-          {
-            id: optimist,
-            type: 'agent',
-            position: { x: 20, y: 60 },
-            parentId: room,
-            extent: 'parent',
-            data: presetAgent('optimist'),
-          },
-          {
-            id: critic,
-            type: 'agent',
-            position: { x: 20, y: 150 },
-            parentId: room,
-            extent: 'parent',
-            data: presetAgent('critic'),
-          },
-          {
-            id: moderator,
-            type: 'agent',
-            position: { x: 20, y: 240 },
-            parentId: room,
-            extent: 'parent',
-            data: presetAgent('moderator'),
-          },
-          {
-            id: out,
-            type: 'output',
-            position: { x: 720, y: 240 },
-            data: defaultNodeData('output'),
-          },
-        ],
-        edges: [
-          { id: nanoid(), source: trig, target: room, type: 'pipe', data: { type: 'pipe' } },
-          { id: nanoid(), source: room, target: out, type: 'pipe', data: { type: 'pipe' } },
-        ],
-      };
-    },
-  },
-  ...MEMORY_TRADING_TEMPLATES,
 ];

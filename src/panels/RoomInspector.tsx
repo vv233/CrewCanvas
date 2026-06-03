@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { AgentNodeData, FlowNode, RoomNodeData } from '../types';
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function RoomInspector({ node }: Props) {
+  const { t } = useTranslation();
   const update = useWorkflowStore((s) => s.updateNodeData);
   const remove = useWorkflowStore((s) => s.removeNode);
   const workflow = useWorkflowStore((s) => s.workflow);
@@ -21,7 +23,7 @@ export function RoomInspector({ node }: Props) {
   return (
     <div className="space-y-3">
       <div>
-        <div className="label mb-1">名字</div>
+        <div className="label mb-1">{t('inspector.name')}</div>
         <input
           className="input"
           value={d.name}
@@ -29,7 +31,7 @@ export function RoomInspector({ node }: Props) {
         />
       </div>
       <div>
-        <div className="label mb-1">发言模式</div>
+        <div className="label mb-1">{t('roomInspector.modeLabel')}</div>
         <select
           className="input"
           value={d.mode}
@@ -37,14 +39,14 @@ export function RoomInspector({ node }: Props) {
             update(node.id, { mode: e.target.value as RoomNodeData['mode'] })
           }
         >
-          <option value="round-robin">轮询（按顺序逐个发言）</option>
-          <option value="moderator">主持人（由主持人决定下一个）</option>
-          <option value="race">抢答（每轮先到先发言）</option>
+          <option value="round-robin">{t('roomInspector.modeRoundRobin')}</option>
+          <option value="moderator">{t('roomInspector.modeModerator')}</option>
+          <option value="race">{t('roomInspector.modeRace')}</option>
         </select>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <div className="label mb-1">最大轮数</div>
+          <div className="label mb-1">{t('roomInspector.maxRounds')}</div>
           <input
             type="number"
             min={1}
@@ -58,7 +60,7 @@ export function RoomInspector({ node }: Props) {
         </div>
         {d.mode === 'moderator' ? (
           <div>
-            <div className="label mb-1">每人最少发言</div>
+            <div className="label mb-1">{t('roomInspector.minTurns')}</div>
             <input
               type="number"
               min={1}
@@ -77,13 +79,13 @@ export function RoomInspector({ node }: Props) {
       {d.mode === 'moderator' ? (
         <>
           <div>
-            <div className="label mb-1">主持人（成员中选一位）</div>
+            <div className="label mb-1">{t('roomInspector.moderatorLabel')}</div>
             <select
               className="input"
               value={d.moderatorId ?? ''}
               onChange={(e) => update(node.id, { moderatorId: e.target.value })}
             >
-              <option value="">（自动选第一个成员）</option>
+              <option value="">{t('roomInspector.moderatorAuto')}</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.data.name}
@@ -92,34 +94,37 @@ export function RoomInspector({ node }: Props) {
             </select>
           </div>
           <div>
-            <div className="label mb-1">主持人指令模板</div>
+            <div className="label mb-1">{t('roomInspector.moderatorPromptLabel')}</div>
             <textarea
               className="input min-h-[120px] resize-y font-mono text-[11px]"
               value={d.moderatorPrompt ?? ''}
               onChange={(e) => update(node.id, { moderatorPrompt: e.target.value })}
             />
             <div className="mt-1 text-[10px] text-muted">
-              变量：<code>{'{{var.members}}'}</code>、<code>{'{{var.history}}'}</code>。
-              主持人需返回 JSON：<code>{'{"next":"成员名"}'}</code> 或{' '}
+              {t('roomInspector.moderatorVars')} <code>{'{{var.members}}'}</code>、
+              <code>{'{{var.history}}'}</code>。 {t('roomInspector.moderatorReturns')}{' '}
+              <code>{'{"next":"name"}'}</code> {t('roomInspector.or')}{' '}
               <code>{'{"stop":true,"summary":"..."}'}</code>
             </div>
           </div>
         </>
       ) : null}
       <div>
-        <div className="label mb-1">终止关键词（任意发言包含即停）</div>
+        <div className="label mb-1">{t('roomInspector.stopKeywordLabel')}</div>
         <input
           className="input"
           value={d.stopKeyword ?? ''}
-          placeholder="例：【讨论结束】"
+          placeholder={t('roomInspector.stopKeywordPlaceholder')}
           onChange={(e) => update(node.id, { stopKeyword: e.target.value })}
         />
       </div>
 
       <div className="rounded-md bg-bg-soft p-2 text-[11px]">
-        <div className="mb-1 font-semibold text-ink">当前成员（{members.length}）</div>
+        <div className="mb-1 font-semibold text-ink">
+          {t('roomInspector.membersTitle', { count: members.length })}
+        </div>
         {members.length === 0 ? (
-          <div className="text-muted">把 AI 节点拖到房间内即可加入</div>
+          <div className="text-muted">{t('roomInspector.membersEmpty')}</div>
         ) : (
           <ul className="space-y-1">
             {members.map((m) => (
@@ -134,7 +139,7 @@ export function RoomInspector({ node }: Props) {
       </div>
 
       <button className="btn-danger w-full" onClick={() => remove(node.id)}>
-        <Trash2 size={14} /> 删除房间
+        <Trash2 size={14} /> {t('roomInspector.deleteRoom')}
       </button>
     </div>
   );

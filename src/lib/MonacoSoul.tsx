@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const Monaco = lazy(() =>
   import('@monaco-editor/react').then((m) => ({ default: m.default }))
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function MonacoSoul({ value, onChange, minHeight = 280 }: Props) {
+  const { t } = useTranslation();
   return (
     <div
       className="overflow-hidden rounded-md border border-line bg-bg"
@@ -19,7 +21,7 @@ export function MonacoSoul({ value, onChange, minHeight = 280 }: Props) {
       <Suspense
         fallback={
           <div className="flex h-full items-center justify-center text-[11px] text-muted">
-            加载编辑器…
+            {t('common.loadingEditor')}
           </div>
         }
       >

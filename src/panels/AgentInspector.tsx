@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { AgentNodeData, FlowNode, ProviderId } from '../types';
 import { MODEL_OPTIONS } from '../providers/models';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function AgentInspector({ node }: Props) {
+  const { t } = useTranslation();
   const update = useWorkflowStore((s) => s.updateNodeData);
   const remove = useWorkflowStore((s) => s.removeNode);
   const workflowId = useWorkflowStore((s) => s.workflow.id);
@@ -19,7 +21,7 @@ export function AgentInspector({ node }: Props) {
 
   return (
     <div className="space-y-3">
-      <Field label="头像 (emoji)">
+      <Field label={t('fields.avatar')}>
         <input
           className="input"
           value={d.avatar}
@@ -27,7 +29,7 @@ export function AgentInspector({ node }: Props) {
           onChange={(e) => update(node.id, { avatar: e.target.value })}
         />
       </Field>
-      <Field label="名字">
+      <Field label={t('fields.name')}>
         <input
           className="input"
           value={d.name}
@@ -35,7 +37,7 @@ export function AgentInspector({ node }: Props) {
         />
       </Field>
 
-      <Field label="供应商">
+      <Field label={t('fields.provider')}>
         <select
           className="input"
           value={d.provider}
@@ -48,17 +50,17 @@ export function AgentInspector({ node }: Props) {
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>
           <option value="openrouter">OpenRouter</option>
-          <option value="ollama">Ollama (本地)</option>
-          <option value="lmstudio">LM Studio (本地)</option>
+          <option value="ollama">{t('providers.ollamaLocal')}</option>
+          <option value="lmstudio">{t('providers.lmstudioLocal')}</option>
         </select>
       </Field>
-      <Field label="模型">
+      <Field label={t('fields.model')}>
         <input
           className="input font-mono text-[12px]"
           list={`models-${d.provider}`}
           value={d.model}
           onChange={(e) => update(node.id, { model: e.target.value })}
-          placeholder="选一个或输入模型 id"
+          placeholder={t('agentInspector.modelPlaceholder')}
         />
         <datalist id={`models-${d.provider}`}>
           {MODEL_OPTIONS[d.provider].map((m) => (
@@ -70,7 +72,7 @@ export function AgentInspector({ node }: Props) {
       </Field>
 
       <div className="grid grid-cols-2 gap-2">
-        <Field label="Temperature">
+        <Field label={t('fields.temperature')}>
           <input
             type="number"
             step="0.1"
@@ -83,7 +85,7 @@ export function AgentInspector({ node }: Props) {
             }
           />
         </Field>
-        <Field label="Max tokens">
+        <Field label={t('fields.maxTokens')}>
           <input
             type="number"
             step="128"
@@ -97,7 +99,7 @@ export function AgentInspector({ node }: Props) {
         </Field>
       </div>
 
-      <Field label="记忆">
+      <Field label={t('agentInspector.memory')}>
         <select
           className="input"
           value={d.memory}
@@ -105,12 +107,12 @@ export function AgentInspector({ node }: Props) {
             update(node.id, { memory: e.target.value as 'none' | 'session' })
           }
         >
-          <option value="session">本次运行内记忆</option>
-          <option value="none">无记忆（每次清空）</option>
+          <option value="session">{t('agentInspector.memorySession')}</option>
+          <option value="none">{t('agentInspector.memoryNone')}</option>
         </select>
       </Field>
 
-      <Field label="soul.md（角色/性格/职责）">
+      <Field label={t('agentInspector.soulLabel')}>
         <div className="mb-1 flex gap-1">
           <select
             className="input h-7 text-[11px]"
@@ -118,16 +120,13 @@ export function AgentInspector({ node }: Props) {
             onChange={(e) => {
               const preset = SOUL_PRESETS.find((p) => p.id === e.target.value);
               if (preset) {
-                if (
-                  d.soul.trim() &&
-                  !confirm('当前 soul.md 已有内容，确定用模板覆盖？')
-                )
+                if (d.soul.trim() && !confirm(t('agentInspector.presetOverwrite')))
                   return;
                 update(node.id, { name: preset.name, avatar: preset.avatar, soul: preset.soul });
               }
             }}
           >
-            <option value="">从模板填充…</option>
+            <option value="">{t('agentInspector.fillFromPreset')}</option>
             {SOUL_PRESETS.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.avatar} {p.name}
@@ -141,8 +140,8 @@ export function AgentInspector({ node }: Props) {
           minHeight={280}
         />
         <div className="mt-1 text-[10px] text-muted">
-          支持变量：<code>{'{{input}}'}</code>、<code>{'{{upstream.节点名}}'}</code>、
-          <code>{'{{var.X}}'}</code>
+          {t('agentInspector.soulVars')} <code>{'{{input}}'}</code>,{' '}
+          <code>{'{{upstream.NodeName}}'}</code>, <code>{'{{var.X}}'}</code>
         </div>
       </Field>
 
@@ -163,7 +162,7 @@ export function AgentInspector({ node }: Props) {
         className="btn-danger w-full"
         onClick={() => remove(node.id)}
       >
-        <Trash2 size={14} /> 删除节点
+        <Trash2 size={14} /> {t('inspector.deleteNode')}
       </button>
     </div>
   );

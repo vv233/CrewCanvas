@@ -17,6 +17,7 @@ import {
   writeFile,
   type FsEntry,
 } from '../fs/workflowFs';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function FilesDialog({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const workflow = useWorkflowStore((s) => s.workflow);
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ export function FilesDialog({ open, onClose }: Props) {
         setPreview(r.content);
         setPreviewTruncated(r.truncated);
       } catch (err) {
-        setPreview(`(读取失败: ${err instanceof Error ? err.message : err})`);
+        setPreview(t('files.readFailed', { msg: err instanceof Error ? err.message : err }));
         setPreviewTruncated(false);
       }
     }
@@ -99,7 +101,7 @@ export function FilesDialog({ open, onClose }: Props) {
   };
 
   const onDelete = async (e: FsEntry) => {
-    if (!confirm(`确定删除 ${e.path}？目录会递归删除。`)) return;
+    if (!confirm(t('files.deleteConfirm', { path: e.path }))) return;
     await deleteEntry(workflow.id, e.path);
     if (selected?.path === e.path) {
       setSelected(null);
@@ -110,7 +112,7 @@ export function FilesDialog({ open, onClose }: Props) {
 
   const onCreateFile = async () => {
     if (!newPath.startsWith('/')) {
-      alert('路径必须以 / 开头');
+      alert(t('files.pathMustStart'));
       return;
     }
     await writeFile(workflow.id, newPath, newContent);
@@ -133,24 +135,23 @@ export function FilesDialog({ open, onClose }: Props) {
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <div>
-            <div className="text-base font-semibold text-ink">工作流共享文件夹</div>
+            <div className="text-base font-semibold text-ink">{t('files.title')}</div>
             <div className="text-[11px] text-muted">
-              所有 AI 节点可通过 fs_list / fs_read / fs_write / fs_delete 工具读写 ·
-              当前工作流：{workflow.name}
+              {t('files.subtitle', { name: workflow.name })}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               className="btn-ghost"
               onClick={() => setNewOpen((v) => !v)}
-              title="新建文本文件"
+              title={t('files.newTitle')}
             >
-              <FilePlus size={14} /> 新建
+              <FilePlus size={14} /> {t('files.new')}
             </button>
-            <button className="btn-ghost" onClick={onUpload} title="上传文件">
-              <Upload size={14} /> 上传
+            <button className="btn-ghost" onClick={onUpload} title={t('files.uploadTitle')}>
+              <Upload size={14} /> {t('files.upload')}
             </button>
-            <button className="btn-ghost" onClick={refresh} title="刷新">
+            <button className="btn-ghost" onClick={refresh} title={t('common.refresh')}>
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
             <button className="btn-ghost" onClick={onClose}>
@@ -162,16 +163,16 @@ export function FilesDialog({ open, onClose }: Props) {
         {newOpen ? (
           <div className="space-y-2 border-b border-line bg-bg-soft px-4 py-3">
             <div>
-              <div className="label mb-1">路径（以 / 开头）</div>
+              <div className="label mb-1">{t('files.pathLabel')}</div>
               <input
                 className="input font-mono text-[12px]"
                 value={newPath}
-                placeholder="/spec.md"
+                placeholder={t('files.pathPlaceholder')}
                 onChange={(e) => setNewPath(e.target.value)}
               />
             </div>
             <div>
-              <div className="label mb-1">内容</div>
+              <div className="label mb-1">{t('files.contentLabel')}</div>
               <textarea
                 className="input min-h-[100px] resize-y font-mono text-[12px]"
                 value={newContent}
@@ -180,10 +181,10 @@ export function FilesDialog({ open, onClose }: Props) {
             </div>
             <div className="flex justify-end gap-2">
               <button className="btn-ghost" onClick={() => setNewOpen(false)}>
-                取消
+                {t('common.cancel')}
               </button>
               <button className="btn-primary" onClick={onCreateFile}>
-                创建
+                {t('common.create')}
               </button>
             </div>
           </div>
@@ -193,7 +194,7 @@ export function FilesDialog({ open, onClose }: Props) {
           <div className="w-64 shrink-0 overflow-auto border-r border-line">
             {entries.length === 0 && !loading ? (
               <div className="p-4 text-center text-[12px] text-muted">
-                空文件夹。AI 节点用 fs_write 创建文件后会出现在这里。
+                {t('files.empty')}
               </div>
             ) : (
               <ul>
@@ -234,23 +235,23 @@ export function FilesDialog({ open, onClose }: Props) {
                       className="btn-ghost h-7 px-2 text-[11px]"
                       onClick={() => onDownload(selected)}
                     >
-                      <Download size={11} /> 下载
+                      <Download size={11} /> {t('files.download')}
                     </button>
                   ) : null}
                   <button
                     className="btn-ghost h-7 px-2 text-[11px] text-accent-danger hover:bg-accent-danger/10"
                     onClick={() => onDelete(selected)}
                   >
-                    <Trash2 size={11} /> 删除
+                    <Trash2 size={11} /> {t('common.delete')}
                   </button>
                 </div>
                 <div className="min-h-0 flex-1 overflow-auto">
                   {selected.isDir ? (
                     <div className="p-4 text-[12px] text-muted">
-                      （这是个目录，点开内部条目查看）
+                      {t('files.isDir')}
                     </div>
                   ) : preview == null ? (
-                    <div className="p-4 text-[12px] text-muted">读取中…</div>
+                    <div className="p-4 text-[12px] text-muted">{t('files.reading')}</div>
                   ) : (
                     <>
                       <pre className="whitespace-pre-wrap break-words p-3 text-[12px] leading-relaxed text-ink/90">
@@ -258,7 +259,7 @@ export function FilesDialog({ open, onClose }: Props) {
                       </pre>
                       {previewTruncated ? (
                         <div className="px-3 pb-3 text-[11px] text-amber-400">
-                          预览被截断（仅显示前 1MB）
+                          {t('files.truncated')}
                         </div>
                       ) : null}
                     </>
@@ -267,7 +268,7 @@ export function FilesDialog({ open, onClose }: Props) {
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center p-8 text-center text-[12px] text-muted">
-                选一个文件预览
+                {t('files.selectToPreview')}
               </div>
             )}
           </div>

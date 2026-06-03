@@ -13,6 +13,7 @@ import {
   tokenize,
   type RagSearchResult,
 } from './retrieval';
+import i18n from '../i18n';
 
 export interface AddRagSourceInput {
   id?: string;
@@ -45,7 +46,7 @@ export async function addRagSource(
     workflowId: input.workflowId,
     scope: input.scope,
     agentNodeId: input.scope === 'agent' ? input.agentNodeId : undefined,
-    name: input.name || '未命名资料',
+    name: input.name || i18n.t('ragRuntime.defaultSourceName'),
     content: input.content,
     size: input.content.length,
     status: 'indexing',

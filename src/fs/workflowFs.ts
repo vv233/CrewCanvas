@@ -1,13 +1,17 @@
 /**
  * Per-workflow shared filesystem.
  *
- * OPFS (Origin Private File System) is used when the current browser origin
- * supports it. When the page is opened from a non-secure LAN/Tailscale HTTP
- * origin, OPFS may be unavailable, so we fall back to IndexedDB while keeping
- * the same fs_list / fs_read / fs_write / fs_delete behavior.
+ * Backed by IndexedDB (via Dexie). IndexedDB works in every context the app
+ * is served from — secure (https / localhost) and insecure (plain-HTTP LAN /
+ * Tailscale) origins alike, on all browsers and on the main thread. We
+ * deliberately do NOT use OPFS: it's unavailable on non-secure origins (which
+ * this app explicitly supports for LAN/Tailscale access) and its main-thread
+ * write path (createWritable) is unsupported on Safari, so it failed silently
+ * in exactly the environments we target.
  */
 
 import { db, type WorkflowFileRecord } from '../storage/db';
+import i18n from '../i18n';
 
 export interface FsEntry {
   name: string;
@@ -30,7 +34,7 @@ function normalizePath(p: string): string[] {
   const parts = (p || '/').split('/').filter(Boolean);
   for (const seg of parts) {
     if (seg === '..' || seg === '.') {
-      throw new FsError(`不允许的路径段: "${seg}"`);
+      throw new FsError(i18n.t('errors.fsForbiddenSegment', { seg }));
     }
   }
   return parts;
@@ -38,154 +42,6 @@ function normalizePath(p: string): string[] {
 
 function toAbsolutePath(parts: string[]): string {
   return parts.length === 0 ? '/' : '/' + parts.join('/');
-}
-
-function hasOpfs(): boolean {
-  return Boolean(
-    typeof navigator !== 'undefined' &&
-      navigator.storage &&
-      typeof navigator.storage.getDirectory === 'function'
-  );
-}
-
-function isOpfsUnavailableError(err: unknown): boolean {
-  if (err instanceof FsError && err.message.includes('OPFS')) return true;
-  return (
-    typeof DOMException !== 'undefined' &&
-    err instanceof DOMException &&
-    err.name === 'SecurityError'
-  );
-}
-
-async function withFilesystem<T>(
-  opfs: () => Promise<T>,
-  idb: () => Promise<T>
-): Promise<T> {
-  if (!hasOpfs()) return idb();
-  try {
-    return await opfs();
-  } catch (err) {
-    if (isOpfsUnavailableError(err)) return idb();
-    throw err;
-  }
-}
-
-async function getWorkflowRoot(
-  workflowId: string
-): Promise<FileSystemDirectoryHandle> {
-  if (!hasOpfs()) {
-    throw new FsError('当前浏览器不支持 OPFS');
-  }
-  const root = await navigator.storage.getDirectory();
-  const wfRoot = await root.getDirectoryHandle('workflows', { create: true });
-  return wfRoot.getDirectoryHandle(workflowId, { create: true });
-}
-
-async function resolveDir(
-  workflowId: string,
-  parts: string[],
-  create: boolean
-): Promise<FileSystemDirectoryHandle> {
-  let dir = await getWorkflowRoot(workflowId);
-  for (const p of parts) {
-    dir = await dir.getDirectoryHandle(p, { create });
-  }
-  return dir;
-}
-
-async function listFilesOpfs(
-  workflowId: string,
-  path = '/'
-): Promise<FsEntry[]> {
-  const parts = normalizePath(path);
-  let dir: FileSystemDirectoryHandle;
-  try {
-    dir = await resolveDir(workflowId, parts, false);
-  } catch (err) {
-    if (isOpfsUnavailableError(err)) throw err;
-    return [];
-  }
-  const out: FsEntry[] = [];
-  // FileSystemDirectoryHandle.entries() is an async iterator (not in TS DOM
-  // lib until very recent versions); cast for compatibility.
-  for await (const [name, handle] of (
-    dir as unknown as {
-      entries: () => AsyncIterable<[string, FileSystemHandle]>;
-    }
-  ).entries()) {
-    const entryPath = '/' + [...parts, name].join('/');
-    if (handle.kind === 'file') {
-      const f = await (handle as FileSystemFileHandle).getFile();
-      out.push({
-        name,
-        path: entryPath,
-        isDir: false,
-        size: f.size,
-        modified: f.lastModified,
-      });
-    } else {
-      out.push({ name, path: entryPath, isDir: true });
-    }
-  }
-  return sortEntries(out);
-}
-
-async function readFileOpfs(
-  workflowId: string,
-  path: string,
-  textLimit = DEFAULT_TEXT_LIMIT
-): Promise<{ content: string; truncated: boolean; size: number }> {
-  const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
-  const name = parts.pop()!;
-  const dir = await resolveDir(workflowId, parts, false);
-  const handle = await dir.getFileHandle(name);
-  const f = await handle.getFile();
-  if (f.size > textLimit) {
-    const slice = await f.slice(0, textLimit).text();
-    return { content: slice, truncated: true, size: f.size };
-  }
-  const text = await f.text();
-  return { content: text, truncated: false, size: f.size };
-}
-
-async function writeFileOpfs(
-  workflowId: string,
-  path: string,
-  content: string | Blob
-): Promise<number> {
-  const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
-  const name = parts.pop()!;
-  const dir = await resolveDir(workflowId, parts, true);
-  const handle = await dir.getFileHandle(name, { create: true });
-  const writable = await handle.createWritable();
-  await writable.write(content);
-  await writable.close();
-  const f = await handle.getFile();
-  return f.size;
-}
-
-async function deleteEntryOpfs(
-  workflowId: string,
-  path: string
-): Promise<void> {
-  const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
-  const name = parts.pop()!;
-  const dir = await resolveDir(workflowId, parts, false);
-  await dir.removeEntry(name, { recursive: true });
-}
-
-async function downloadFileOpfs(
-  workflowId: string,
-  path: string
-): Promise<Blob> {
-  const parts = normalizePath(path);
-  const name = parts.pop()!;
-  const dir = await resolveDir(workflowId, parts, false);
-  const handle = await dir.getFileHandle(name);
-  return await handle.getFile();
 }
 
 async function getWorkflowFile(
@@ -196,11 +52,11 @@ async function getWorkflowFile(
     .where('[workflowId+path]')
     .equals([workflowId, path])
     .first();
-  if (!record) throw new FsError(`文件不存在: ${path}`);
+  if (!record) throw new FsError(i18n.t('errors.fsFileNotExist', { path }));
   return record;
 }
 
-async function listFilesIdb(
+export async function listFiles(
   workflowId: string,
   path = '/'
 ): Promise<FsEntry[]> {
@@ -238,13 +94,14 @@ async function listFilesIdb(
   return sortEntries([...byPath.values()]);
 }
 
-async function readFileIdb(
+export async function readFile(
   workflowId: string,
   path: string,
-  textLimit = DEFAULT_TEXT_LIMIT
+  options: ReadFileOptions = {}
 ): Promise<{ content: string; truncated: boolean; size: number }> {
+  const textLimit = options.textLimit ?? DEFAULT_TEXT_LIMIT;
   const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
+  if (parts.length === 0) throw new FsError(i18n.t('errors.fsPathEmpty'));
   const record = await getWorkflowFile(workflowId, toAbsolutePath(parts));
   const blob = record.content;
   if (record.size > textLimit) {
@@ -258,13 +115,13 @@ async function readFileIdb(
   };
 }
 
-async function writeFileIdb(
+export async function writeFile(
   workflowId: string,
   path: string,
   content: string | Blob
 ): Promise<number> {
   const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
+  if (parts.length === 0) throw new FsError(i18n.t('errors.fsPathEmpty'));
   const filePath = toAbsolutePath(parts);
   const blob = content instanceof Blob ? content : new Blob([content]);
   await db.workflowFiles.put({
@@ -278,9 +135,12 @@ async function writeFileIdb(
   return blob.size;
 }
 
-async function deleteEntryIdb(workflowId: string, path: string): Promise<void> {
+export async function deleteEntry(
+  workflowId: string,
+  path: string
+): Promise<void> {
   const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
+  if (parts.length === 0) throw new FsError(i18n.t('errors.fsPathEmpty'));
   const entryPath = toAbsolutePath(parts);
   const prefix = `${entryPath}/`;
   const keys = await db.workflowFiles
@@ -288,68 +148,18 @@ async function deleteEntryIdb(workflowId: string, path: string): Promise<void> {
     .equals(workflowId)
     .filter((record) => record.path === entryPath || record.path.startsWith(prefix))
     .primaryKeys();
-  if (keys.length === 0) throw new FsError(`路径不存在: ${entryPath}`);
+  if (keys.length === 0) throw new FsError(i18n.t('errors.fsPathNotExist', { path: entryPath }));
   await db.workflowFiles.bulkDelete(keys as string[]);
-}
-
-async function downloadFileIdb(workflowId: string, path: string): Promise<Blob> {
-  const parts = normalizePath(path);
-  if (parts.length === 0) throw new FsError('路径不能为空');
-  const record = await getWorkflowFile(workflowId, toAbsolutePath(parts));
-  return record.content;
-}
-
-export async function listFiles(
-  workflowId: string,
-  path = '/'
-): Promise<FsEntry[]> {
-  return withFilesystem(
-    () => listFilesOpfs(workflowId, path),
-    () => listFilesIdb(workflowId, path)
-  );
-}
-
-export async function readFile(
-  workflowId: string,
-  path: string,
-  options: ReadFileOptions = {}
-): Promise<{ content: string; truncated: boolean; size: number }> {
-  const textLimit = options.textLimit ?? DEFAULT_TEXT_LIMIT;
-  return withFilesystem(
-    () => readFileOpfs(workflowId, path, textLimit),
-    () => readFileIdb(workflowId, path, textLimit)
-  );
-}
-
-export async function writeFile(
-  workflowId: string,
-  path: string,
-  content: string | Blob
-): Promise<number> {
-  return withFilesystem(
-    () => writeFileOpfs(workflowId, path, content),
-    () => writeFileIdb(workflowId, path, content)
-  );
-}
-
-export async function deleteEntry(
-  workflowId: string,
-  path: string
-): Promise<void> {
-  return withFilesystem(
-    () => deleteEntryOpfs(workflowId, path),
-    () => deleteEntryIdb(workflowId, path)
-  );
 }
 
 export async function downloadFile(
   workflowId: string,
   path: string
 ): Promise<Blob> {
-  return withFilesystem(
-    () => downloadFileOpfs(workflowId, path),
-    () => downloadFileIdb(workflowId, path)
-  );
+  const parts = normalizePath(path);
+  if (parts.length === 0) throw new FsError(i18n.t('errors.fsPathEmpty'));
+  const record = await getWorkflowFile(workflowId, toAbsolutePath(parts));
+  return record.content;
 }
 
 function sortEntries(entries: FsEntry[]): FsEntry[] {

@@ -1,4 +1,5 @@
 import { BookOpen } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { AgentKnowledge } from '../types';
 import { RagSourcesPanel } from './RagSourcesPanel';
 
@@ -17,6 +18,7 @@ export function AgentKnowledgeField({
   workflowId,
   agentNodeId,
 }: Props) {
+  const { t } = useTranslation();
   const inline = value?.inline ?? '';
   const legacyFiles = value?.files ?? [];
 
@@ -27,16 +29,16 @@ export function AgentKnowledgeField({
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
         <BookOpen size={11} className="text-muted" />
-        <span className="label">知识库</span>
+        <span className="label">{t('knowledge.title')}</span>
       </div>
 
       <div>
         <div className="mb-0.5 text-[10px] uppercase tracking-wider text-muted">
-          内联背景（拼到 system prompt，每次都看得到）
+          {t('knowledge.inlineLabel')}
         </div>
         <textarea
           className="input min-h-[60px] resize-y text-[11px]"
-          placeholder="例：你是 ACME 公司的内部助理。公司刚发布新版本 v3.2，重要变更：..."
+          placeholder={t('knowledge.inlinePlaceholder')}
           value={inline}
           onChange={(e) => setInline(e.target.value)}
         />
@@ -46,13 +48,15 @@ export function AgentKnowledgeField({
         workflowId={workflowId}
         scope="agent"
         agentNodeId={agentNodeId}
-        title="私有资料库"
+        title={t('knowledge.privateLibrary')}
         compact
       />
 
       <div className="text-[10px] leading-relaxed text-muted">
-        <strong className="text-ink/70">内联</strong>：短的、必看的信息。
-        <strong className="text-ink/70">私有资料库</strong>：长资料会自动索引，并在运行时按任务检索。
+        <strong className="text-ink/70">{t('knowledge.footerInline')}</strong>
+        {t('knowledge.footerInlineDesc')}
+        <strong className="text-ink/70">{t('knowledge.footerLibrary')}</strong>
+        {t('knowledge.footerLibraryDesc')}
       </div>
     </div>
   );

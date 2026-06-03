@@ -1,8 +1,10 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { TriggerNodeData } from '../../types';
 
 export function TriggerNode({ data, selected }: NodeProps & { data: TriggerNodeData }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`card w-[220px] overflow-hidden px-3 py-2 ${
@@ -15,7 +17,7 @@ export function TriggerNode({ data, selected }: NodeProps & { data: TriggerNodeD
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-ink">{data.name}</div>
-          <div className="text-[11px] text-muted">工作流入口</div>
+          <div className="text-[11px] text-muted">{t('nodes.trigger.subtitle')}</div>
         </div>
       </div>
       {data.input ? (

@@ -1,5 +1,0 @@
-mcp[cli]>=1.2
-yfinance>=0.2.50
-pandas>=2.2
-uvicorn[standard]>=0.30
-starlette>=0.40

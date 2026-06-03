@@ -2,6 +2,7 @@ import type { ChatProvider, StreamChunk, StreamOpts } from './types';
 import { ProviderError } from './types';
 import { parseSSE } from './sse';
 import type { Message } from '../types';
+import i18n from '../i18n';
 
 function truncate(s: string, n: number): string {
   if (s.length <= n) return s;
@@ -62,7 +63,7 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
     id: 'anthropic',
     async *stream(opts: StreamOpts): AsyncIterable<StreamChunk> {
       if (!cfg.apiKey) {
-        throw new ProviderError('Anthropic API key 未配置，请先在「设置」里录入。');
+        throw new ProviderError(i18n.t('errors.anthropicNoKey'));
       }
       const url = `${cfg.baseUrl.replace(/\/$/, '')}/messages`;
       // Only remote-transport MCP servers are sent to Anthropic's API; local
@@ -122,10 +123,13 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new ProviderError(`Anthropic 请求失败：${res.status} ${res.statusText}`, {
-          status: res.status,
-          body: text,
-        });
+        throw new ProviderError(
+          i18n.t('errors.anthropicRequestFailed', {
+            status: res.status,
+            statusText: res.statusText,
+          }),
+          { status: res.status, body: text }
+        );
       }
       let usage: { input: number; output: number } | undefined;
       let finishReason: StreamChunk['finishReason'] = 'stop';
@@ -157,13 +161,13 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
               toolMeta.set(idx, { server, name });
               toolInputBuf.set(idx, '');
               yield {
-                delta: `\n\n🔧 [${server}.${name}] 调用中…`,
+                delta: i18n.t('tools.remoteToolCalling', { name: `${server}.${name}` }),
                 done: false,
               };
             } else if (cb.type === 'mcp_tool_result') {
               blockKinds.set(idx, 'mcp_tool_result');
               const txt = extractMcpResultText(cb);
-              const tag = cb.is_error ? '⚠️ 工具错误' : '↩️ 工具结果';
+              const tag = cb.is_error ? i18n.t('tools.toolError') : i18n.t('tools.toolResult');
               yield {
                 delta: `\n${tag}：${truncate(txt, 400)}\n`,
                 done: false,
@@ -203,7 +207,7 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
               }
               if (meta) {
                 yield {
-                  delta: `\n  参数: ${truncate(argSummary, 200)}`,
+                  delta: i18n.t('tools.argsLine', { args: truncate(argSummary, 200) }),
                   done: false,
                 };
               }
@@ -238,7 +242,11 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
             yield { done: true, usage, finishReason };
             return;
           } else if (data.type === 'error') {
-            throw new ProviderError(`Anthropic 错误：${data.error?.message ?? '未知'}`);
+            throw new ProviderError(
+              i18n.t('errors.anthropicError', {
+                msg: data.error?.message ?? i18n.t('errors.anthropicUnknown'),
+              })
+            );
           }
         } catch (e) {
           if (e instanceof ProviderError) throw e;
@@ -248,7 +256,7 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
     },
 
     async ping() {
-      if (!cfg.apiKey) throw new ProviderError('未配置 API key');
+      if (!cfg.apiKey) throw new ProviderError(i18n.t('errors.anthropicNoKeyShort'));
       const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/messages`, {
         method: 'POST',
         headers: {
@@ -265,7 +273,9 @@ export function createAnthropicProvider(cfg: Config): ChatProvider {
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new ProviderError(`Anthropic ping 失败：${res.status} — ${text.slice(0, 200)}`);
+        throw new ProviderError(
+          i18n.t('errors.anthropicPingFailed', { status: res.status, body: text.slice(0, 200) })
+        );
       }
       return true;
     },

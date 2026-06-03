@@ -1,78 +1,99 @@
-# AI Org Flow — 拖拽式 AI 工作流网站
+# AI Org Flow
 
-一个纯前端的可视化 AI 编排工具。把 AI 想象成员工，画一张组织图，让它们协作完成任务。
+**Drag-and-drop orchestration for teams of AIs — 100% in the browser.**
 
-## 特性
+Treat each AI as an employee: draw an org chart on a canvas, give every AI a personality in `soul.md`, wire them together with typed connections, and press **Run**. There's no backend, no sign-up, and no server-side state — your keys and data never leave your browser.
 
-- **6 种节点**：任务入口 / AI 员工 / 群聊室 / 汇总 / 分流 / 输出
-- **5 种连线**：管道 / 指派 / 汇报 / 广播 / 话题，连线类型决定上下游沟通语义
-- **3 家模型**：Anthropic Claude / OpenAI / Ollama（本地），浏览器直连
-- **soul.md**：每个 AI 用 Markdown 定义自己的角色、性格、职责，支持变量插值
-- **群聊室**：多个 AI 在同一房间内多轮讨论，支持轮询 / 主持人 / 抢答三种模式
-- **零后端**：所有数据存浏览器（localStorage + IndexedDB），托管为静态资源即可
+> The UI is **English** by default, with a **中文** toggle in the top bar. In-depth guides live in [`docs/`](./docs).
 
-## 本地开发
+---
+
+## Why
+
+A single chatbot is one voice. Real work often needs several — a PM, an engineer, and a designer reacting to one brief; an optimist and a critic refereed by a moderator; a manager that splits a job and hands pieces to specialists. AI Org Flow lets you wire those roles into a graph and watch them collaborate, with full visibility into every step.
+
+## Features
+
+- **7 node types** — Task Entry · AI Worker · Discuss with User · Group Chat · Aggregate · Branch · Output
+- **6 edge types** — pipe · assign · report · broadcast · topic · manage (the edge type sets the up/downstream communication semantics)
+- **5 providers, browser-direct** — Anthropic Claude · OpenAI · OpenRouter · Ollama (local) · LM Studio (local)
+- **`soul.md` personas** — define each AI's role / style / duties in Markdown, with `{{variable}}` interpolation
+- **Group chat** — multiple AIs discuss over rounds: round-robin, moderator, or race
+- **Conditional branching** — route the flow by regex or a real **LLM-judge** call; the untaken branch is skipped
+- **RAG library** — drop in text; it's chunked, indexed locally, and auto-retrieved into context at run time
+- **Tools** — a per-workflow shared folder (`fs_*`), a private knowledge base (`kb_*`), delegation across `manage` edges, and your own **MCP** servers
+- **Live runs & history** — streaming output on every node, a console, and the last 200 runs replayable in full
+- **i18n** — English + 中文, switchable at runtime
+- **Zero backend** — everything in `localStorage` + IndexedDB; ship it as static files
+
+## Quickstart
 
 ```bash
 npm install
-npm run dev
+npm run dev          # opens http://127.0.0.1:5173/
 ```
 
-打开 http://127.0.0.1:5173/。
+Then:
 
-## 部署
+1. **Settings** → paste an API key (OpenRouter is an easy start) → **Test connection**.
+2. **Templates** → load **Product Trio**, or drag nodes from the left palette.
+3. Click an **AI Worker** → pick a model and edit its `soul.md`.
+4. Fill the **Task Entry** node's input → **Run**.
 
-构建：
+New here? Start with the [User Guide](./docs/user-guide.md).
+
+## Build & deploy
 
 ```bash
-npm run build
+npm run build        # outputs static assets to dist/
 ```
 
-把 `dist/` 推到任何静态托管：
+`dist/` is a static SPA (no client-side router, so no rewrite rules needed):
 
-- **Vercel**：`vercel deploy --prod` 或连 GitHub 自动部署
-- **Cloudflare Pages**：拖 `dist/` 文件夹到 dashboard
-- **GitHub Pages**：把 `dist/*` 推到 `gh-pages` 分支
-- **Nginx / Caddy**：把 `dist/` 配置为根目录即可
+- **Vercel / Cloudflare Pages / GitHub Pages** — deploy `dist/` as static assets
+- **Nginx / Caddy** — serve `dist/` as the web root
+- **Remote (e.g. Tailscale)** — serve over your tailnet IP; storage works anywhere since it's IndexedDB
 
-由于使用 SPA 路由（实际上 M1-M5 还没有路由，单页），无需额外重写规则。
+## Documentation
 
-## 使用流程
+| Doc | What's inside |
+|---|---|
+| [User Guide](./docs/user-guide.md) | Day-to-day usage: nodes, edges, tools, running, deployment, FAQ |
+| [Templates & Data Model](./docs/templates.md) | Workflow JSON, building/importing templates, full node/edge/tool reference |
+| [MCP Guide](./docs/mcp.md) | Connect and write your own MCP tool servers |
 
-1. 顶栏「设置」录入你的 Anthropic 或 OpenAI key（或启动本地 Ollama），点「测试连接」确认
-2. 顶栏「模板」选一个示例工作流，或从左侧拖节点自己搭
-3. 点击 AI 节点，在右侧 inspector 用 Monaco 编辑 soul.md
-4. 点击连线，在右侧切换沟通方式（管道 / 指派 / 广播 …）
-5. 编辑「任务入口」节点的输入
-6. 顶栏「运行」，节点上实时显示流式输出
-7. 顶栏「历史」回看任意一次运行的全部细节
+## Tech stack
 
-## 安全提示
-
-API key 明文保存在浏览器 localStorage，请只在自己的设备上使用。后续版本会加入主密码 + AES-GCM 加密。
-
-## 架构
+React + TypeScript · Vite · React Flow (canvas) · Zustand (state) · Dexie/IndexedDB (storage) · Monaco (editor) · i18next.
 
 ```
 src/
-├── canvas/          React Flow 画布 + 节点 + 连线
-├── panels/          Inspector / 顶栏 / 控制台 / 弹窗
-├── engine/          DAG 调度、群聊调度、变量插值
-├── providers/       Anthropic / OpenAI / Ollama 适配
-├── storage/         IndexedDB (Dexie) + 导入导出
-├── state/           Zustand stores
-├── templates/       内置 soul 与工作流模板
-└── lib/             工具
+├── canvas/      React Flow canvas + nodes + edges
+├── panels/      Inspector, top bar, console, dialogs
+├── engine/      DAG scheduling, group-chat loop, agent runner, variable interpolation
+├── providers/   Anthropic / OpenAI / OpenRouter / Ollama / LM Studio adapters
+├── rag/         local chunking + retrieval
+├── storage/     IndexedDB (Dexie) + import/export
+├── state/       Zustand stores
+├── templates/   built-in souls & workflow templates
+├── i18n/        en / zh resources
+├── fs/          per-workflow shared folder (IndexedDB)
+└── lib/         utilities
 ```
 
-## 待办（M6 之后）
+## Security
 
-- 主密码加密 API key（Web Crypto + PBKDF2 + AES-GCM）
-- i18n（中英）
-- Undo / Redo
-- 节点搜索
-- 大图虚拟化
-- 可选同步后端（多设备同步）
-- LLM-judge 路由真正调用模型
-- 群聊 race 模式的取消未完成请求
-- Aggregator summarize 策略绑定 agent
+API keys are stored in plaintext in your browser's `localStorage`, and every request goes directly from the browser to the model provider. **Use this only on your own device** — never on a shared or public machine. Two more things that run with your trust: **Import from TS** executes pasted code in the browser, and any **MCP server** you connect can do whatever its tools allow. Master-password encryption (Web Crypto + PBKDF2 + AES-GCM) is on the roadmap.
+
+## Roadmap
+
+- Master-password encryption for API keys
+- Node search
+- Large-graph virtualization
+- Optional sync backend (multi-device)
+- Cancel in-flight requests in group-chat race mode
+- A real summarizing agent bound to the Aggregator `summarize` strategy
+
+## License
+
+Not yet licensed — add a `LICENSE` before any public release.

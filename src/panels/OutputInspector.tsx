@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { FlowNode, OutputNodeData } from '../types';
 
@@ -7,12 +8,13 @@ interface Props {
 }
 
 export function OutputInspector({ node }: Props) {
+  const { t } = useTranslation();
   const update = useWorkflowStore((s) => s.updateNodeData);
   const remove = useWorkflowStore((s) => s.removeNode);
   return (
     <div className="space-y-3">
       <div>
-        <div className="label mb-1">名字</div>
+        <div className="label mb-1">{t('inspector.name')}</div>
         <input
           className="input"
           value={node.data.name}
@@ -20,7 +22,7 @@ export function OutputInspector({ node }: Props) {
         />
       </div>
       <button className="btn-danger w-full" onClick={() => remove(node.id)}>
-        <Trash2 size={14} /> 删除节点
+        <Trash2 size={14} /> {t('inspector.deleteNode')}
       </button>
     </div>
   );

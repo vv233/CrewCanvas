@@ -1,4 +1,5 @@
 import type { ProviderId } from '../types';
+import i18n from '../i18n';
 
 export interface ModelOption {
   id: string;
@@ -33,6 +34,6 @@ export const MODEL_OPTIONS: Record<ProviderId, ModelOption[]> = {
     { id: 'google/gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (paid)' },
   ],
   lmstudio: [
-    { id: 'local-model', label: '当前加载的本地模型' },
+    { id: 'local-model', label: i18n.t('models.localLoaded') },
   ],
 };

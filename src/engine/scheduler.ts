@@ -19,11 +19,13 @@ import {
   topoBatches,
 } from './graph';
 import { ProviderError } from '../providers/types';
+import { getProvider } from '../providers/registry';
 import { runRoom } from './roomLoop';
 import { runAgent, type DelegateTarget } from './runAgent';
 import { createBufferedTextSink } from './streamBuffer';
 import { saveRun, type RunRecord } from '../storage/db';
 import { nanoid } from 'nanoid';
+import i18n from '../i18n';
 
 export interface RunHandle {
   abort: () => void;
@@ -43,11 +45,18 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
   const run = useRunStore.getState();
   const idx = buildIndex(wf);
   const outputs = new Map<string, string>(); // nodeId → output
+  // Router decisions (routerId → chosen source handle) and the set of nodes
+  // skipped because they sit on a branch the router did not take.
+  const routerChoices = new Map<string, string>();
+  const skipped = new Set<string>();
   const batches = topoBatches(wf, idx);
   const startedAt = Date.now();
   let status: RunRecord['status'] = 'done';
 
-  run.log('info', `图解析完成 · ${wf.nodes.length} 节点 · ${batches.length} 个批次`);
+  run.log(
+    'info',
+    i18n.t('engine.graphParsed', { nodes: wf.nodes.length, batches: batches.length })
+  );
   for (const n of wf.nodes) {
     run.setNodeState(n.id, { status: 'queued', output: '' });
   }
@@ -61,7 +70,7 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
       batch.map((id) => {
         const node = idx.nodes.get(id);
         if (!node) return;
-        return runNode(node, wf, idx, outputs, signal).catch((err) => {
+        return runNode(node, wf, idx, outputs, routerChoices, skipped, signal).catch((err) => {
           if (signal.aborted) return;
           const msg = err instanceof Error ? err.message : String(err);
           run.setNodeState(id, { status: 'error', error: msg });
@@ -108,7 +117,7 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
     /* ignore storage errors */
   });
 
-  run.log('info', `运行结束 · ${status}`);
+  run.log('info', i18n.t('engine.runEnded', { status }));
 }
 
 async function runNode(
@@ -116,6 +125,8 @@ async function runNode(
   wf: Workflow,
   idx: ReturnType<typeof buildIndex>,
   outputs: Map<string, string>,
+  routerChoices: Map<string, string>,
+  skipped: Set<string>,
   signal: AbortSignal
 ) {
   const run = useRunStore.getState();
@@ -134,13 +145,40 @@ async function runNode(
     return;
   }
 
-  // 收集上游
+  // 收集上游（忽略 report 边）
   const incomingEdges = (idx.incoming.get(node.id) ?? []).filter(
     (e) => (e.data?.type ?? e.type) !== 'report'
   );
+  // An incoming edge is "active" only when its source actually ran and, if the
+  // source is a router, the edge leaves the chosen branch handle.
+  const activeIncoming = incomingEdges.filter((e) => {
+    if (skipped.has(e.source)) return false;
+    const src = idx.nodes.get(e.source);
+    if (src?.data.kind === 'router') {
+      const choice = routerChoices.get(e.source) ?? 'a';
+      if ((e.sourceHandle ?? 'a') !== choice) return false;
+    }
+    return true;
+  });
+
+  // Dead branch: this node has upstream edges but none are active (e.g. it sits
+  // on the router branch that wasn't taken). Skip it and propagate the skip.
+  if (incomingEdges.length > 0 && activeIncoming.length === 0) {
+    skipped.add(node.id);
+    outputs.set(node.id, '');
+    run.setNodeState(node.id, {
+      status: 'skipped',
+      output: '',
+      startedAt: Date.now(),
+      finishedAt: Date.now(),
+    });
+    run.log('info', i18n.t('engine.skipped'), node.id);
+    return;
+  }
+
   const upstreams: Record<string, string> = {};
   const upstreamSummaries: { name: string; type: EdgeType; text: string }[] = [];
-  for (const e of incomingEdges) {
+  for (const e of activeIncoming) {
     const src = idx.nodes.get(e.source);
     if (!src) continue;
     const rawOut = outputs.get(src.id) ?? '';
@@ -157,7 +195,7 @@ async function runNode(
   if (data.kind === 'output') {
     const out =
       upstreamSummaries.map((u) => u.text).join('\n\n---\n\n') ||
-      '(无上游输出)';
+      i18n.t('engine.noUpstream');
     outputs.set(node.id, out);
     run.setNodeState(node.id, {
       status: 'done',
@@ -185,23 +223,25 @@ async function runNode(
     const input = upstreamSummaries[0]?.text ?? '';
     run.setNodeState(node.id, { status: 'running', startedAt: Date.now() });
     const branch = await routeBranch(router, input, signal);
-    const out = `[路由→${branch}] ${input}`;
-    outputs.set(node.id, out);
-    // 标记走了哪条分支：写在 output 里，下游的 sourceHandle 自动过滤
-    // （我们在 buildUserMessage 阶段不区分 handle，所以下游 agent 会收到 [路由→a] 标签）
+    // Record the decision so downstream edges on the other handle are filtered
+    // out (their target nodes get skipped). Downstream receives the clean input.
+    routerChoices.set(node.id, branch);
+    outputs.set(node.id, input);
     run.setNodeState(node.id, {
       status: 'done',
-      output: out,
+      // Show the chosen branch on the canvas; downstream still gets clean input.
+      output: i18n.t('engine.routePrefix', { branch }) + input,
       finishedAt: Date.now(),
     });
-    run.log('info', `路由到分支 "${branch}"`, node.id);
+    run.log('info', i18n.t('engine.routedTo', { branch }), node.id);
     return;
   }
 
   if (data.kind === 'room') {
     const room = node as FlowNode & { data: RoomNodeData };
     const members = roomMembers(wf, node.id) as (FlowNode & { data: AgentNodeData })[];
-    const topic = upstreamSummaries.map((u) => u.text).join('\n').trim() || '请讨论。';
+    const topic =
+      upstreamSummaries.map((u) => u.text).join('\n').trim() || i18n.t('engine.pleaseDiscuss');
     run.setNodeState(node.id, { status: 'running', startedAt: Date.now(), output: '' });
     for (const m of members) {
       run.setNodeState(m.id, { status: 'queued', output: '' });
@@ -236,7 +276,11 @@ async function runNode(
       output: '',
       startedAt: Date.now(),
     });
-    run.log('info', `调用 ${agent.provider}/${agent.model}`, node.id);
+    run.log(
+      'info',
+      i18n.t('engine.calling', { provider: agent.provider, model: agent.model }),
+      node.id
+    );
 
     const outputSink = createBufferedTextSink((d) => run.appendNodeOutput(node.id, d));
     try {
@@ -260,13 +304,15 @@ async function runNode(
       });
       run.log(
         'info',
-        `完成${result.toolRounds ? ` · 工具轮次 ${result.toolRounds}` : ''}`,
+        result.toolRounds
+          ? i18n.t('engine.doneWithTools', { rounds: result.toolRounds })
+          : i18n.t('engine.done'),
         node.id
       );
     } catch (err) {
       outputSink.flush();
       if ((err as Error).name === 'AbortError') {
-        run.setNodeState(node.id, { status: 'error', error: '已中止' });
+        run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
         return;
       }
       const msg =
@@ -321,7 +367,11 @@ async function runDiscussNode(
     startedAt: Date.now(),
   });
   run.initDiscussion(node.id);
-  run.log('info', `等待用户讨论（${d.provider}/${d.model}）`, node.id);
+  run.log(
+    'info',
+    i18n.t('engine.waitingDiscuss', { provider: d.provider, model: d.model }),
+    node.id
+  );
 
   // First turn: AI opens.
   const openingSink = createBufferedTextSink((delta) =>
@@ -342,7 +392,7 @@ async function runDiscussNode(
   } catch (err) {
     openingSink.flush();
     if ((err as Error).name === 'AbortError') {
-      run.setNodeState(node.id, { status: 'error', error: '已中止' });
+      run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
       return;
     }
     throw err;
@@ -389,7 +439,7 @@ async function runDiscussNode(
     } catch (err) {
       replySink.flush();
       if ((err as Error).name === 'AbortError') {
-        run.setNodeState(node.id, { status: 'error', error: '已中止' });
+        run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
         return;
       }
       run.log(
@@ -417,7 +467,7 @@ async function runDiscussNode(
     output: finalOut,
     finishedAt: Date.now(),
   });
-  run.log('info', '讨论完成，输出已传给下游', node.id);
+  run.log('info', i18n.t('engine.discussDone'), node.id);
 }
 
 /**
@@ -452,7 +502,7 @@ function buildDelegates(
         description: firstLine(agent.soul) || agent.name,
         run: async (task: string) => {
           if (inflight.has(sub.id)) {
-            return `(拒绝：检测到循环指派——${agent.name} 已在当前调用栈上)`;
+            return i18n.t('engine.delegateCycle', { name: agent.name });
           }
           return await runManagedNode(
             sub as FlowNode & { data: AgentNodeData },
@@ -469,18 +519,17 @@ function buildDelegates(
       const memberNames = roomMembers(wf, sub.id)
         .map((m) => (m.data as { name?: string }).name)
         .filter((n): n is string => !!n);
-      const modeLabel =
-        room.mode === 'moderator' ? '主持人' :
-        room.mode === 'race' ? '抢答' : '轮询';
+      const modeLabel = i18n.t(`nodes.room.modes.${room.mode}`);
       out.push({
         name: room.name,
-        description:
-          `[群聊室·${modeLabel}模式·最多${room.maxRounds}轮] 成员：` +
-          (memberNames.join('、') || '(空)') +
-          '。task 描述会作为讨论话题。',
+        description: i18n.t('engine.roomDelegateDesc', {
+          mode: modeLabel,
+          rounds: room.maxRounds,
+          members: memberNames.join('、') || i18n.t('common.empty'),
+        }),
         run: async (task: string) => {
           if (inflight.has(sub.id)) {
-            return `(拒绝：检测到循环指派——${room.name} 已在当前调用栈上)`;
+            return i18n.t('engine.delegateCycle', { name: room.name });
           }
           return await runManagedRoom(
             sub as FlowNode & { data: RoomNodeData },
@@ -508,7 +557,7 @@ async function runManagedRoom(
   })[];
 
   if (members.length === 0) {
-    return `(房间 ${room.data.name} 是空的——把 AI 节点拖进房间内才能讨论)`;
+    return i18n.t('engine.roomEmpty', { name: room.data.name });
   }
 
   run.setNodeState(room.id, {
@@ -519,11 +568,7 @@ async function runManagedRoom(
   for (const m of members) {
     run.setNodeState(m.id, { status: 'queued', output: '' });
   }
-  run.log(
-    'info',
-    `被指派讨论：${task}`,
-    room.id
-  );
+  run.log('info', i18n.t('engine.assignedDiscuss', { task }), room.id);
 
   try {
     const { output } = await runRoom({
@@ -543,13 +588,13 @@ async function runManagedRoom(
     return output;
   } catch (err) {
     if ((err as Error).name === 'AbortError') {
-      run.setNodeState(room.id, { status: 'error', error: '已中止' });
+      run.setNodeState(room.id, { status: 'error', error: i18n.t('engine.aborted') });
       throw err;
     }
     const msg = err instanceof Error ? err.message : String(err);
     run.setNodeState(room.id, { status: 'error', error: msg });
     run.log('error', msg, room.id);
-    return `(房间 ${room.data.name} 执行失败：${msg})`;
+    return i18n.t('engine.roomFailed', { name: room.data.name, msg });
   }
 }
 
@@ -569,7 +614,7 @@ async function runManagedNode(
     output: '',
     startedAt: Date.now(),
   });
-  run.log('info', `被指派：${task}`, node.id);
+  run.log('info', i18n.t('engine.assigned', { task }), node.id);
 
   const ctx = { input: task, upstreams: {}, vars: wf.variables };
   const system = interpolate(agent.soul, ctx);
@@ -594,13 +639,13 @@ async function runManagedNode(
   } catch (err) {
     outputSink.flush();
     if ((err as Error).name === 'AbortError') {
-      run.setNodeState(node.id, { status: 'error', error: '已中止' });
+      run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
       throw err;
     }
     const msg = err instanceof Error ? err.message : String(err);
     run.setNodeState(node.id, { status: 'error', error: msg });
     run.log('error', msg, node.id);
-    return `(下属 ${agent.name} 执行失败：${msg})`;
+    return i18n.t('engine.subordinateFailed', { name: agent.name, msg });
   }
 }
 
@@ -615,8 +660,8 @@ function firstLine(s: string): string {
 async function routeBranch(
   router: RouterNodeData,
   input: string,
-  _signal: AbortSignal
-): Promise<string> {
+  signal: AbortSignal
+): Promise<'a' | 'b'> {
   if (router.rule === 'regex') {
     try {
       const re = new RegExp(router.pattern);
@@ -625,11 +670,32 @@ async function routeBranch(
       return 'b';
     }
   }
-  // llm-judge: 一次轻量调用让模型选 a/b
-  // 简化：直接看 input 第一个字符是不是 "是 / 1 / yes / a"
-  const t = input.trim().toLowerCase();
-  if (/^(是|yes|1|true|a)/.test(t)) return 'a';
-  return 'b';
+
+  // llm-judge: a lightweight model call returns a single letter ("a"/"b").
+  const provider = getProvider(router.provider ?? 'openrouter');
+  const model = router.model ?? 'openai/gpt-oss-120b:free';
+  const system = i18n.t('engine.routerJudgeSystem', {
+    criteria: (router.prompt ?? '').trim() || '(no criterion provided)',
+  });
+  let text = '';
+  try {
+    for await (const chunk of provider.stream({
+      model,
+      systemPrompt: system,
+      messages: [{ role: 'user', content: input }],
+      temperature: 0,
+      maxTokens: 4,
+      signal,
+    })) {
+      if (chunk.delta) text += chunk.delta;
+    }
+  } catch {
+    // On any provider/network error, fall back to branch b.
+    return 'b';
+  }
+  // Take the first a/b letter the model emits; default to b.
+  const m = text.toLowerCase().match(/[ab]/);
+  return m && m[0] === 'a' ? 'a' : 'b';
 }
 
 function applyEdgeTransform(edge: FlowEdge, output: string): string {
@@ -642,15 +708,15 @@ function buildUserMessage(
   upstreams: { name: string; type: EdgeType; text: string }[],
   fallback: string
 ): string {
-  if (upstreams.length === 0) return fallback || '（无输入，请自由发挥）';
+  if (upstreams.length === 0) return fallback || i18n.t('engine.freeform');
   if (upstreams.length === 1) return upstreams[0].text;
   const parts = upstreams.map((u) => {
     const tag =
       u.type === 'assign'
-        ? '【上级指派】'
+        ? i18n.t('engine.tagAssign')
         : u.type === 'broadcast'
-        ? '【广播】'
-        : '【来自 ' + u.name + '】';
+        ? i18n.t('engine.tagBroadcast')
+        : i18n.t('engine.tagFrom', { name: u.name });
     return `${tag} ${u.text}`;
   });
   return parts.join('\n\n');

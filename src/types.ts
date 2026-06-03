@@ -101,6 +101,11 @@ export interface RouterNodeData extends Record<string, unknown> {
   name: string;
   rule: 'llm-judge' | 'regex';
   pattern: string;
+  /** llm-judge: the criterion that sends the input down branch a (else b). */
+  prompt?: string;
+  /** llm-judge: provider + model used to make the decision. */
+  provider?: ProviderId;
+  model?: string;
 }
 
 export interface OutputNodeData extends Record<string, unknown> {

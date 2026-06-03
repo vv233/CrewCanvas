@@ -4,10 +4,12 @@ import {
   getBezierPath,
   type EdgeProps,
 } from '@xyflow/react';
+import { useTranslation } from 'react-i18next';
 import { EDGE_STYLES } from './edgeStyles';
 import type { EdgeData, EdgeType } from '../../types';
 
 export function TypedEdge(props: EdgeProps & { data?: EdgeData; type?: string }) {
+  const { t } = useTranslation();
   const {
     id,
     sourceX,
@@ -55,7 +57,7 @@ export function TypedEdge(props: EdgeProps & { data?: EdgeData; type?: string })
             border: `1px solid ${style.stroke}55`,
           }}
         >
-          {data?.label ?? style.label}
+          {data?.label ?? t(`edges.types.${edgeType}.label`)}
         </div>
       </EdgeLabelRenderer>
     </>

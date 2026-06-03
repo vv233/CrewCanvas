@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useRunStore } from '../state/runStore';
 import { useWorkflowStore } from '../state/workflowStore';
 
 export function RunConsole() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const logs = useRunStore((s) => s.logs);
   const nodeStateCount = useRunStore((s) => Object.keys(s.nodeStates).length);
@@ -32,10 +34,10 @@ export function RunConsole() {
       >
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wider text-muted">
-            控制台
+            {t('runConsole.title')}
           </span>
           <span className="text-[11px] text-muted">
-            {logs.length} 条日志 · {nodeStateCount} 个节点
+            {t('runConsole.stats', { logs: logs.length, nodes: nodeStateCount })}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -46,7 +48,7 @@ export function RunConsole() {
                 e.stopPropagation();
                 resetAll();
               }}
-              title="清空"
+              title={t('runConsole.clear')}
             >
               <Trash2 size={12} />
             </button>
@@ -60,7 +62,7 @@ export function RunConsole() {
           className="h-44 overflow-auto px-3 py-2 font-mono text-[11px] leading-relaxed"
         >
           {logs.length === 0 ? (
-            <div className="text-muted">点击右上角"运行"开始</div>
+            <div className="text-muted">{t('runConsole.empty')}</div>
           ) : (
             logs.map((l, i) => (
               <div key={i} className="flex gap-2">

@@ -1,18 +1,13 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Combine } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { AggregatorNodeData } from '../../types';
-
-const STRATEGY: Record<AggregatorNodeData['strategy'], string> = {
-  concat: '拼接',
-  'json-merge': 'JSON 合并',
-  'pick-first': '取第一个',
-  summarize: 'AI 总结',
-};
 
 export function AggregatorNode({
   data,
   selected,
 }: NodeProps & { data: AggregatorNodeData }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`card min-w-[180px] px-3 py-2 ${
@@ -26,7 +21,11 @@ export function AggregatorNode({
         </div>
         <div>
           <div className="text-sm font-semibold text-ink">{data.name}</div>
-          <div className="text-[11px] text-muted">汇总 · {STRATEGY[data.strategy]}</div>
+          <div className="text-[11px] text-muted">
+            {t('nodes.aggregator.summary', {
+              strategy: t(`nodes.aggregator.strategies.${data.strategy}`),
+            })}
+          </div>
         </div>
       </div>
       <Handle type="source" position={Position.Right} />

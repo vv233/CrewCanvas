@@ -14,8 +14,10 @@ import { useWorkflowStore } from './state/workflowStore';
 import { runWorkflow, type RunHandle } from './engine/scheduler';
 import { migrateLegacyKnowledge } from './rag/store';
 import { nanoid } from 'nanoid';
+import { useTranslation } from 'react-i18next';
 
 export default function App() {
+  const { t } = useTranslation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -27,11 +29,11 @@ export default function App() {
     if (useRunStore.getState().isRunning) return;
     const wf = useWorkflowStore.getState().workflow;
     if (wf.nodes.length === 0) {
-      alert('画布上没有节点');
+      alert(t('app.noNodes'));
       return;
     }
     useRunStore.getState().beginRun(nanoid());
-    useRunStore.getState().log('info', `开始运行：${wf.name}`);
+    useRunStore.getState().log('info', t('app.runStart', { name: wf.name }));
     const handle = runWorkflow(wf);
     runRef.current = handle;
     try {
@@ -44,7 +46,7 @@ export default function App() {
 
   const handleStop = () => {
     runRef.current?.abort();
-    useRunStore.getState().log('warn', '用户中止运行');
+    useRunStore.getState().log('warn', t('app.runAborted'));
     useRunStore.getState().endRun();
   };
 

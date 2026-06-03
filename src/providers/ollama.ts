@@ -1,5 +1,6 @@
 import type { ChatProvider, StreamChunk, StreamOpts } from './types';
 import { ProviderError } from './types';
+import i18n from '../i18n';
 
 interface Config {
   baseUrl: string;
@@ -27,7 +28,9 @@ export function createOllamaProvider(cfg: Config): ChatProvider {
       });
       if (!res.ok || !res.body) {
         const text = await res.text().catch(() => '');
-        throw new ProviderError(`Ollama 请求失败：${res.status} — ${text.slice(0, 200)}`);
+        throw new ProviderError(
+          i18n.t('errors.ollamaRequestFailed', { status: res.status, body: text.slice(0, 200) })
+        );
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder('utf-8');
@@ -66,7 +69,7 @@ export function createOllamaProvider(cfg: Config): ChatProvider {
       const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/api/tags`);
       if (!res.ok) {
         throw new ProviderError(
-          `Ollama ping 失败：${res.status}（检查 ollama serve 是否在运行）`
+          i18n.t('errors.ollamaPingFailed', { status: res.status })
         );
       }
       return true;

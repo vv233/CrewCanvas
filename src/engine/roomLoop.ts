@@ -8,6 +8,7 @@ import { useRunStore } from '../state/runStore';
 import { interpolate } from './interpolate';
 import { runAgent } from './runAgent';
 import { createBufferedTextSink } from './streamBuffer';
+import i18n from '../i18n';
 
 interface RoomCtx {
   room: FlowNode & { data: RoomNodeData };
@@ -31,7 +32,7 @@ export async function runRoom(ctx: RoomCtx): Promise<{
   const history: RoomTurn[] = [];
 
   if (members.length === 0) {
-    return { history, output: '（房间是空的，请把 AI 节点拖入房间内）' };
+    return { history, output: i18n.t('engine.roomEmpty', { name: room.data.name }) };
   }
 
   const moderator =
@@ -42,15 +43,16 @@ export async function runRoom(ctx: RoomCtx): Promise<{
 
   const announce = (msg: string) => run.log('info', msg, room.id);
   announce(
-    `群聊开始 · 模式=${room.data.mode} · 成员=${members
-      .map((m) => m.data.name)
-      .join(', ')}`
+    i18n.t('engine.roomStart', {
+      mode: room.data.mode,
+      members: members.map((m) => m.data.name).join(', '),
+    })
   );
 
   let lastSpeakerOutput = '';
   for (let round = 0; round < room.data.maxRounds; round++) {
     if (signal.aborted) break;
-    announce(`--- 第 ${round + 1} 轮 ---`);
+    announce(i18n.t('engine.round', { n: round + 1 }));
 
     if (room.data.mode === 'round-robin') {
       for (const m of speakers) {
@@ -59,7 +61,7 @@ export async function runRoom(ctx: RoomCtx): Promise<{
         history.push({ speaker: m.data.name, text });
         lastSpeakerOutput = text;
         if (containsStop(text, room.data.stopKeyword)) {
-          announce('检测到终止关键词，提前结束');
+          announce(i18n.t('engine.stopKeywordDetected'));
           return finalize(room, history, moderator, workflow, signal);
         }
       }
@@ -86,7 +88,7 @@ export async function runRoom(ctx: RoomCtx): Promise<{
       if (!everyoneSpoke) {
         nextMember =
           speakers.find((s) => !spoken.has(s.data.name)) ?? speakers[0];
-        announce(`首轮发言：${nextMember.data.name}`);
+        announce(i18n.t('engine.firstSpeaker', { name: nextMember.data.name }));
       } else {
         const decision = await speakAndStream(
           moderator,
@@ -95,7 +97,7 @@ export async function runRoom(ctx: RoomCtx): Promise<{
           workflow,
           signal,
           room.id,
-          `${moderator.data.name}(主持)`,
+          i18n.t('engine.moderatorTag', { name: moderator.data.name }),
           interpolate(room.data.moderatorPrompt ?? '', {
             input: topic,
             vars: {
@@ -121,7 +123,7 @@ export async function runRoom(ctx: RoomCtx): Promise<{
         );
 
         if (parsed.stop && belowMin.length === 0) {
-          announce('主持人宣布结束');
+          announce(i18n.t('engine.moderatorEnded'));
           return {
             history,
             output:
@@ -131,9 +133,10 @@ export async function runRoom(ctx: RoomCtx): Promise<{
         }
         if (parsed.stop && belowMin.length > 0) {
           announce(
-            `主持人想 stop，但 ${belowMin
-              .map((s) => s.data.name)
-              .join('、')} 还未达到最少 ${minTurns} 次发言；强制继续`
+            i18n.t('engine.moderatorForceContinue', {
+              names: belowMin.map((s) => s.data.name).join('、'),
+              min: minTurns,
+            })
           );
           // 让发言次数最少的人继续发言
           nextMember = belowMin.sort(
@@ -176,12 +179,12 @@ async function finalize(
   if (moderator) {
     const summary = await speakAndStream(
       moderator,
-      '请基于以上讨论历史，给出一段总结作为最终结论。',
+      i18n.t('engine.summaryPrompt'),
       history,
       workflow,
       signal,
       room.id,
-      `${moderator.data.name}(总结)`
+      i18n.t('engine.summaryTag', { name: moderator.data.name })
     );
     return { history, output: summary };
   }
@@ -279,8 +282,12 @@ async function speak(
   const userMsg =
     overrideUser ??
     (history.length === 0
-      ? `讨论话题：${topic}\n\n请你作为${agent.data.name}发表你的看法。`
-      : `话题：${topic}\n\n当前讨论历史：\n${ctxObj.room.history}\n\n请你作为${agent.data.name}发表你的看法。`);
+      ? i18n.t('engine.discussFirstMsg', { topic, name: agent.data.name })
+      : i18n.t('engine.discussNextMsg', {
+          topic,
+          history: ctxObj.room.history,
+          name: agent.data.name,
+        }));
 
   const result = await runAgent({
     agent: agent.data,
