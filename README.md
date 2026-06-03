@@ -96,4 +96,4 @@ API keys are stored in plaintext in your browser's `localStorage`, and every req
 
 ## License
 
-Not yet licensed — add a `LICENSE` before any public release.
+[GNU General Public License v3.0](./LICENSE).
