@@ -10,11 +10,7 @@ Draw an org chart on a canvas, give each AI a personality, wire the roles togeth
 
 > UI is **English** by default with a **中文** toggle in the top bar. In-depth guides live in [`docs/`](./docs).
 
-<!-- Add a screenshot or GIF at docs/screenshot.png (a short GIF of building + running
-     a flow works best), then uncomment the line below to show it here:
-![CrewCanvas — build an AI org chart and watch the team collaborate](docs/screenshot.png)
--->
-_Screenshot coming soon — clone & `npm run dev` to try it._
+[![CrewCanvas — build an AI org chart and watch the team collaborate](docs/screenshot.png)](https://crew.vk13.net)
 
 ---
 
