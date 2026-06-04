@@ -103,6 +103,7 @@ export const zh: Resources = {
   inspector: {
     heading: '检查器',
     nodeLabel: '节点 · {{type}}',
+    multiLabel: '已选中 {{count}} 个节点',
     edge: '连线',
     none: '未选中（点击节点或连线编辑）',
     hintsTitle: '提示：',
@@ -113,6 +114,14 @@ export const zh: Resources = {
     name: '名字',
     deleteNode: '删除节点',
     deleteEdge: '删除连线',
+  },
+  bulkInspector: {
+    selectedCount: '已选中 {{count}} 个节点',
+    agentsCount: '其中 {{count}} 个是 AI Worker',
+    sourceTitle: '批量设置模型来源',
+    apply: '应用到 {{count}} 个 AI Worker',
+    noAgents: '选区里没有 AI Worker —— 框选一些 agent 节点。',
+    deleteSelection: '删除 {{count}} 个节点',
   },
   trigger: {
     inputLabel: '输入（任务描述）',

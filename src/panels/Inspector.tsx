@@ -8,6 +8,7 @@ import { RouterInspector } from './RouterInspector';
 import { OutputInspector } from './OutputInspector';
 import { DiscussInspector } from './DiscussInspector';
 import { EdgeInspector } from './EdgeInspector';
+import { BulkInspector } from './BulkInspector';
 
 export function Inspector() {
   const { t } = useTranslation();
@@ -15,7 +16,14 @@ export function Inspector() {
   const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId);
   const selectedEdgeId = useWorkflowStore((s) => s.selectedEdgeId);
 
-  const node = workflow.nodes.find((n) => n.id === selectedNodeId);
+  // Multi-selection (box-select / shift-click) is tracked via React Flow's
+  // per-node `selected` flag; a single click selects exactly one.
+  const selectedNodes = workflow.nodes.filter((n) => n.selected);
+  const multi = selectedNodes.length > 1;
+  const node =
+    selectedNodes.length === 1
+      ? selectedNodes[0]
+      : workflow.nodes.find((n) => n.id === selectedNodeId);
   const edge = workflow.edges.find((e) => e.id === selectedEdgeId);
 
   return (
@@ -23,7 +31,9 @@ export function Inspector() {
       <div className="border-b border-line px-3 py-2">
         <div className="label">{t('inspector.heading')}</div>
         <div className="mt-1 text-[11px] text-muted">
-          {node
+          {multi
+            ? t('inspector.multiLabel', { count: selectedNodes.length })
+            : node
             ? t('inspector.nodeLabel', { type: node.type })
             : edge
             ? t('inspector.edge')
@@ -31,7 +41,9 @@ export function Inspector() {
         </div>
       </div>
       <div className="flex-1 overflow-auto p-3">
-        {node?.data?.kind === 'agent' ? (
+        {multi ? (
+          <BulkInspector nodes={selectedNodes} />
+        ) : node?.data?.kind === 'agent' ? (
           <AgentInspector node={node as never} />
         ) : node?.data?.kind === 'trigger' ? (
           <TriggerInspector node={node as never} />

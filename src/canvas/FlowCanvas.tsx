@@ -5,6 +5,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   useReactFlow,
   type Node,
   type NodeTypes,
@@ -129,6 +130,12 @@ function CanvasInner() {
         // removeSelected(), which records an undo step — disable React Flow's
         // built-in delete so it doesn't also remove nodes without history.
         deleteKeyCode={null}
+        // Box (rubber-band) selection: left-drag on empty canvas draws a
+        // selection rectangle; pan with middle/right mouse or hold Space.
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={[1, 2]}
+        panActivationKeyCode="Space"
         onPaneClick={() => {
           selectNode(null);
           selectEdge(null);

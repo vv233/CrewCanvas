@@ -102,6 +102,7 @@ export const en = {
   inspector: {
     heading: 'Inspector',
     nodeLabel: 'Node · {{type}}',
+    multiLabel: '{{count}} nodes selected',
     edge: 'Edge',
     none: 'Nothing selected (click a node or edge to edit)',
     hintsTitle: 'Tips:',
@@ -112,6 +113,14 @@ export const en = {
     name: 'Name',
     deleteNode: 'Delete node',
     deleteEdge: 'Delete edge',
+  },
+  bulkInspector: {
+    selectedCount: '{{count}} nodes selected',
+    agentsCount: '{{count}} are AI Workers',
+    sourceTitle: 'Bulk model source',
+    apply: 'Apply to {{count}} AI Workers',
+    noAgents: 'No AI Workers in the selection — box-select some agent nodes.',
+    deleteSelection: 'Delete {{count}} nodes',
   },
   trigger: {
     inputLabel: 'Input (task description)',

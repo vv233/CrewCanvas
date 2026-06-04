@@ -46,6 +46,8 @@ interface WorkflowStore {
     items: { type: NodeType; position: { x: number; y: number }; data: AnyNodeData }[]
   ) => string[];
   updateNodeData: (id: string, patch: Partial<AnyNodeData>) => void;
+  /** Apply the same data patch to many nodes at once (bulk edit), one undo step. */
+  updateNodesData: (ids: string[], patch: Partial<AnyNodeData>) => void;
   removeNode: (id: string) => void;
   /** Delete everything currently selected (nodes — with their room children —
    *  and edges) in a single undo step. Falls back to the single inspector
@@ -380,6 +382,18 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const next = touch({ ...wf, nodes });
     persist(next);
     set({ workflow: next });
+  },
+
+  updateNodesData: (ids, patch) => {
+    if (ids.length === 0) return;
+    const wf = get().workflow;
+    const idset = new Set(ids);
+    const nodes = wf.nodes.map((n) =>
+      idset.has(n.id) ? { ...n, data: { ...n.data, ...patch } as AnyNodeData } : n
+    );
+    const next = touch({ ...wf, nodes });
+    persist(next, { immediate: true });
+    set({ workflow: next, past: pushHistory(get().past, wf), future: [] });
   },
 
   removeNode: (id) => {
