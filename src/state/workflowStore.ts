@@ -9,6 +9,7 @@ import {
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import type {
+  AgentNodeData,
   AnyNodeData,
   EdgeData,
   EdgeType,
@@ -37,6 +38,8 @@ interface WorkflowStore {
   onConnect: (conn: Connection) => void;
 
   addNode: (type: NodeType, position: { x: number; y: number }) => string;
+  /** Batch-create agent nodes from imported role-card data. Returns new node ids. */
+  addAgentNodes: (agents: AgentNodeData[]) => string[];
   updateNodeData: (id: string, patch: Partial<AnyNodeData>) => void;
   removeNode: (id: string) => void;
 
@@ -271,6 +274,32 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       future: [],
     });
     return id;
+  },
+
+  addAgentNodes: (agents) => {
+    if (agents.length === 0) return [];
+    const wf = get().workflow;
+    const ids: string[] = [];
+    const newNodes: FlowNode[] = agents.map((data, i) => {
+      const id = nanoid();
+      ids.push(id);
+      return {
+        id,
+        type: 'agent',
+        position: { x: 80 + (i % 4) * 80, y: 80 + Math.floor(i / 4) * 80 },
+        data,
+      };
+    });
+    const next = touch({ ...wf, nodes: [...wf.nodes, ...newNodes] });
+    persist(next, { immediate: true });
+    set({
+      workflow: next,
+      selectedNodeId: ids[ids.length - 1] ?? null,
+      selectedEdgeId: null,
+      past: pushHistory(get().past, wf),
+      future: [],
+    });
+    return ids;
   },
 
   setNodeParent: (childId, parentId, relativePosition) => {

@@ -128,7 +128,8 @@ Tool support: Anthropic / OpenAI / OpenRouter / LM Studio ✅, **Ollama ❌**. T
 ## 8. Templates & sharing
 
 - **Built-in template** — **Templates → Product Trio**: a brief is broadcast to a PM, an engineer, and a designer, each answering into an Output. Loading replaces the canvas (with a confirm).
-- **Export / import** — **Export** downloads the workflow (nodes/edges/variables + attached RAG sources); it excludes keys, history, MCP tokens, and shared-folder files. **Import** loads it back.
+- **Export / import** — **Export** opens a dialog with two toggles: *include knowledge base* (inline knowledge + each agent's private-library files) and *include sensitive fields* (MCP server auth tokens — off by default, so the file is safe to share). It always excludes provider API keys, run history, and shared-folder files. **Import** loads a workflow back.
+- **Role cards** — reuse a single AI persona across workflows. **Export role card** (in an AI Worker's inspector) downloads that agent — name, avatar, `soul.md`, model settings, inline knowledge + private library — as a `.rolecard.json` (MCP tokens stripped). **Import roles** (top bar) loads one *or many* role-card files at once and drops each in as a new AI Worker node.
 - **Import from TS** — paste a snippet that `export default`s `{ id, name, description?, build() }`. Globals `nanoid`, `defaultNodeData`, `SOUL_PRESETS`, `presetAgent` are available; `import` lines are stripped. ⚠️ The code runs in your browser — only paste what you trust. (Reference: [`templates.md`](./templates.md).)
 
 ---

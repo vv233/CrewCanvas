@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2, UserRoundCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { AgentNodeData, FlowNode, ProviderId } from '../types';
@@ -7,6 +7,7 @@ import { MonacoSoul } from '../lib/MonacoSoul';
 import { SOUL_PRESETS } from '../templates/soulPresets';
 import { McpServersField } from './McpServersField';
 import { AgentKnowledgeField } from './AgentKnowledgeField';
+import { buildRoleCard, downloadRoleCard } from '../storage/roleCard';
 
 interface Props {
   node: FlowNode & { data: AgentNodeData };
@@ -18,6 +19,15 @@ export function AgentInspector({ node }: Props) {
   const remove = useWorkflowStore((s) => s.removeNode);
   const workflowId = useWorkflowStore((s) => s.workflow.id);
   const d = node.data;
+
+  const exportRoleCard = async () => {
+    // Single-card export: include knowledge, but strip MCP auth tokens by default.
+    const card = await buildRoleCard(d, workflowId, node.id, {
+      includeKnowledge: true,
+      includeSensitive: false,
+    });
+    downloadRoleCard(card);
+  };
 
   return (
     <div className="space-y-3">
@@ -157,6 +167,14 @@ export function AgentInspector({ node }: Props) {
         agentNodeId={node.id}
         onChange={(knowledge) => update(node.id, { knowledge })}
       />
+
+      <button
+        className="btn-ghost w-full"
+        onClick={exportRoleCard}
+        title={t('agentInspector.exportRoleCardTitle')}
+      >
+        <UserRoundCheck size={14} /> {t('agentInspector.exportRoleCard')}
+      </button>
 
       <button
         className="btn-danger w-full"

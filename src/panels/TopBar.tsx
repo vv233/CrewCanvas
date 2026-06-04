@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Play,
   Square,
@@ -5,6 +6,7 @@ import {
   RotateCcw,
   Download,
   Upload,
+  UserPlus,
   LayoutTemplate,
   History as HistoryIcon,
   Undo2,
@@ -18,7 +20,18 @@ import { useWorkflowStore } from '../state/workflowStore';
 import { useRunStore } from '../state/runStore';
 import { useSettingsStore } from '../state/settingsStore';
 import { setLanguage, type Language } from '../i18n';
-import { exportWorkflowJSON, importWorkflowJSON } from '../storage/exporter';
+import {
+  exportWorkflowJSON,
+  importWorkflowJSON,
+  type WorkflowExportOptions,
+} from '../storage/exporter';
+import {
+  parseRoleCards,
+  roleCardToAgentData,
+  applyRoleCardLibrary,
+  type RoleCard,
+} from '../storage/roleCard';
+import { ExportDialog } from './ExportDialog';
 
 interface Props {
   onOpenSettings: () => void;
@@ -48,14 +61,51 @@ export function TopBar({
   const redo = useWorkflowStore((s) => s.redo);
   const canUndo = useWorkflowStore((s) => s.past.length > 0);
   const canRedo = useWorkflowStore((s) => s.future.length > 0);
+  const addAgentNodes = useWorkflowStore((s) => s.addAgentNodes);
   const isRunning = useRunStore((s) => s.isRunning);
   const language = useSettingsStore((s) => s.language);
   const updateSettings = useSettingsStore((s) => s.update);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const toggleLanguage = () => {
     const next: Language = language === 'en' ? 'zh' : 'en';
     setLanguage(next);
     updateSettings({ language: next });
+  };
+
+  const handleExport = (opts: WorkflowExportOptions) => {
+    setExportOpen(false);
+    exportWorkflowJSON(workflow, opts).catch((err) => {
+      alert(t('topbar.exportFailed', { msg: err instanceof Error ? err.message : String(err) }));
+    });
+  };
+
+  const handleImportRoleCards = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.multiple = true;
+    input.onchange = async () => {
+      const files = Array.from(input.files ?? []);
+      if (files.length === 0) return;
+      const cards: RoleCard[] = [];
+      for (const file of files) {
+        try {
+          cards.push(...parseRoleCards(await file.text()));
+        } catch {
+          /* skip files that aren't valid role-card JSON */
+        }
+      }
+      if (cards.length === 0) {
+        alert(t('topbar.roleCardNone'));
+        return;
+      }
+      const ids = addAgentNodes(cards.map(roleCardToAgentData));
+      const wfId = useWorkflowStore.getState().workflow.id;
+      await Promise.all(cards.map((c, i) => applyRoleCardLibrary(c, wfId, ids[i])));
+      alert(t('topbar.roleCardImported', { count: cards.length }));
+    };
+    input.click();
   };
 
   const handleImport = async () => {
@@ -118,16 +168,19 @@ export function TopBar({
       <button className="btn-ghost" onClick={onOpenHistory} title={t('topbar.historyTitle')}>
         <HistoryIcon size={14} /> {t('topbar.history')}
       </button>
+      <button
+        className="btn-ghost"
+        onClick={handleImportRoleCards}
+        title={t('topbar.importRoleCardTitle')}
+      >
+        <UserPlus size={14} /> {t('topbar.importRoleCard')}
+      </button>
       <button className="btn-ghost" onClick={handleImport} title={t('topbar.importTitle')}>
         <Upload size={14} /> {t('topbar.import')}
       </button>
       <button
         className="btn-ghost"
-        onClick={() => {
-          exportWorkflowJSON(workflow).catch((err) => {
-            alert(t('topbar.exportFailed', { msg: err instanceof Error ? err.message : String(err) }));
-          });
-        }}
+        onClick={() => setExportOpen(true)}
         title={t('topbar.exportTitle')}
       >
         <Download size={14} /> {t('topbar.export')}
@@ -160,6 +213,11 @@ export function TopBar({
           <Play size={14} /> {t('topbar.run')}
         </button>
       )}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={handleExport}
+      />
     </div>
   );
 }
