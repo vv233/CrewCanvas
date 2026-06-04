@@ -29,7 +29,7 @@ const DEFAULTS: SettingsState = {
   openrouterKey: '',
   openrouterBaseUrl: 'https://openrouter.ai/api/v1',
   openrouterReferer: '',
-  openrouterTitle: 'AI Org Flow',
+  openrouterTitle: 'CrewCanvas',
   lmstudioBaseUrl: 'http://localhost:1234/v1',
   lmstudioKey: '',
   syncEndpoint: '',

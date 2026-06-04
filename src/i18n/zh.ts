@@ -23,7 +23,7 @@ export const zh: Resources = {
     runAborted: '用户中止运行',
   },
   topbar: {
-    name: 'Org Flow',
+    name: 'CrewCanvas',
     undo: '撤销 (Ctrl/Cmd+Z)',
     redo: '重做 (Ctrl/Cmd+Shift+Z)',
     templates: '模板',

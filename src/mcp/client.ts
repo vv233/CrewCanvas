@@ -121,7 +121,7 @@ export class McpHttpClient {
     await this.request('initialize', {
       protocolVersion: '2025-03-26',
       capabilities: { tools: {} },
-      clientInfo: { name: 'ai-org-flow', version: '0.1' },
+      clientInfo: { name: 'CrewCanvas', version: '0.1' },
     });
     await this.notify('notifications/initialized');
     this.initialized = true;

@@ -79,10 +79,8 @@ export function TopBar({
   return (
     <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-bg-soft px-3">
       <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-white text-xs font-bold">
-          AI
-        </div>
-        <span className="text-sm font-semibold text-ink">Org Flow</span>
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-white text-xs font-bold">CC</div>
+        <span className="text-sm font-semibold text-ink">CrewCanvas</span>
       </div>
       <div className="mx-3 h-5 w-px bg-line" />
       <input

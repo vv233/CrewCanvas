@@ -21,7 +21,7 @@ export const en = {
     runAborted: 'User aborted the run',
   },
   topbar: {
-    name: 'Org Flow',
+    name: 'CrewCanvas',
     undo: 'Undo (Ctrl/Cmd+Z)',
     redo: 'Redo (Ctrl/Cmd+Shift+Z)',
     templates: 'Templates',

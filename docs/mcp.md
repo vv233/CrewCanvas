@@ -1,8 +1,8 @@
 # MCP Guide
 
-[MCP (Model Context Protocol)](https://modelcontextprotocol.io) is Anthropic's open standard for exposing external tools and data to an LLM. In AI Org Flow, **every agent node** can attach any number of MCP servers and let the model call their tools — fetch data, hit an API, query a vector store, and so on.
+[MCP (Model Context Protocol)](https://modelcontextprotocol.io) is Anthropic's open standard for exposing external tools and data to an LLM. In CrewCanvas, **every agent node** can attach any number of MCP servers and let the model call their tools — fetch data, hit an API, query a vector store, and so on.
 
-> AI Org Flow ships **no built-in MCP servers** — you connect your own. This guide covers connecting one, the two transports, debugging, and writing a server from scratch.
+> CrewCanvas ships **no built-in MCP servers** — you connect your own. This guide covers connecting one, the two transports, debugging, and writing a server from scratch.
 
 ## 1. Connect a server (5 steps)
 

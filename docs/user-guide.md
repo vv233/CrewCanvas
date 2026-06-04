@@ -1,6 +1,6 @@
-# AI Org Flow — User Guide
+# CrewCanvas — User Guide
 
-AI Org Flow lets you orchestrate several AIs as a team. You draw an "org chart" on a canvas, give each AI a personality (`soul.md`), wire the nodes together with typed connections, and press **Run**. It's pure front-end — everything runs in your browser, with no backend and no accounts.
+CrewCanvas lets you orchestrate several AIs as a team. You draw an "org chart" on a canvas, give each AI a personality (`soul.md`), wire the nodes together with typed connections, and press **Run**. It's pure front-end — everything runs in your browser, with no backend and no accounts.
 
 ## Contents
 
@@ -23,7 +23,7 @@ AI Org Flow lets you orchestrate several AIs as a team. You draw an "org chart" 
 
 ## 1. What it is / who it's for
 
-Reach for AI Org Flow when a task benefits from **several AI roles working together** — a PM, an engineer, and a designer reacting to one brief; an optimist and a critic argued out by a moderator; or a manager that breaks work into subtasks and hands them to specialists.
+Reach for CrewCanvas when a task benefits from **several AI roles working together** — a PM, an engineer, and a designer reacting to one brief; an optimist and a critic argued out by a moderator; or a manager that breaks work into subtasks and hands them to specialists.
 
 It is **not** meant for a single one-shot prompt (use a chat app), or for anything that needs a server, a shared database, or multi-user state.
 
