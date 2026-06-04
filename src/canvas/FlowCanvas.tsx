@@ -125,6 +125,10 @@ function CanvasInner() {
         onNodeClick={(_, n) => selectNode(n.id)}
         onEdgeClick={(_, e) => selectEdge(e.id)}
         onNodeDragStop={onNodeDragStop}
+        // Deletion is handled by the app's global key handler (App.tsx) via
+        // removeSelected(), which records an undo step — disable React Flow's
+        // built-in delete so it doesn't also remove nodes without history.
+        deleteKeyCode={null}
         onPaneClick={() => {
           selectNode(null);
           selectEdge(null);

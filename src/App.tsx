@@ -15,6 +15,9 @@ import { runWorkflow, type RunHandle } from './engine/scheduler';
 import { migrateLegacyKnowledge } from './rag/store';
 import { nanoid } from 'nanoid';
 import { useTranslation } from 'react-i18next';
+import type { AnyNodeData, NodeType } from './types';
+
+type ClipNode = { type: NodeType; position: { x: number; y: number }; data: AnyNodeData };
 
 export default function App() {
   const { t } = useTranslation();
@@ -24,6 +27,8 @@ export default function App() {
   const [filesOpen, setFilesOpen] = useState(false);
   const [ragLibraryOpen, setRagLibraryOpen] = useState(false);
   const runRef = useRef<RunHandle | null>(null);
+  const clipboardRef = useRef<ClipNode[]>([]);
+  const pasteSeqRef = useRef(0);
 
   const handleRun = async () => {
     if (useRunStore.getState().isRunning) return;
@@ -81,15 +86,49 @@ export default function App() {
           tgt.closest('.monaco-editor'))
       )
         return;
+      const store = useWorkflowStore.getState();
+      const k = e.key.toLowerCase();
+
+      // Delete selected nodes/edges (no modifier).
+      if (k === 'delete' || k === 'backspace') {
+        e.preventDefault();
+        store.removeSelected();
+        return;
+      }
+
       const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
-      const k = e.key.toLowerCase();
+
       if (k === 'z' && !e.shiftKey) {
         e.preventDefault();
-        useWorkflowStore.getState().undo();
+        store.undo();
       } else if ((k === 'z' && e.shiftKey) || k === 'y') {
         e.preventDefault();
-        useWorkflowStore.getState().redo();
+        store.redo();
+      } else if (k === 'c') {
+        // Copy selected nodes — but let native text copy win if text is selected.
+        if (window.getSelection()?.toString()) return;
+        const sel = store.workflow.nodes.filter((n) => n.selected);
+        if (sel.length === 0) return;
+        e.preventDefault();
+        clipboardRef.current = sel.map((n) => ({
+          type: n.type as NodeType,
+          position: n.position,
+          data: structuredClone(n.data),
+        }));
+        pasteSeqRef.current = 0;
+      } else if (k === 'v') {
+        if (clipboardRef.current.length === 0) return;
+        e.preventDefault();
+        pasteSeqRef.current += 1;
+        const off = 32 * pasteSeqRef.current;
+        store.duplicateNodes(
+          clipboardRef.current.map((c) => ({
+            type: c.type,
+            position: { x: c.position.x + off, y: c.position.y + off },
+            data: structuredClone(c.data),
+          }))
+        );
       }
     };
     window.addEventListener('keydown', onKey);

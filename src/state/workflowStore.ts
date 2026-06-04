@@ -40,8 +40,17 @@ interface WorkflowStore {
   addNode: (type: NodeType, position: { x: number; y: number }) => string;
   /** Batch-create agent nodes from imported role-card data. Returns new node ids. */
   addAgentNodes: (agents: AgentNodeData[]) => string[];
+  /** Batch-create nodes from copied data (paste). New ids; the pasted nodes
+   *  become the selection. Returns new node ids. */
+  duplicateNodes: (
+    items: { type: NodeType; position: { x: number; y: number }; data: AnyNodeData }[]
+  ) => string[];
   updateNodeData: (id: string, patch: Partial<AnyNodeData>) => void;
   removeNode: (id: string) => void;
+  /** Delete everything currently selected (nodes — with their room children —
+   *  and edges) in a single undo step. Falls back to the single inspector
+   *  selection if no nodes/edges carry the React Flow `selected` flag. */
+  removeSelected: () => void;
 
   updateEdgeData: (id: string, patch: Partial<EdgeData>) => void;
   removeEdge: (id: string) => void;
@@ -302,6 +311,39 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     return ids;
   },
 
+  duplicateNodes: (items) => {
+    if (items.length === 0) return [];
+    const wf = get().workflow;
+    const ids: string[] = [];
+    const newNodes: FlowNode[] = items.map((it) => {
+      const id = nanoid();
+      ids.push(id);
+      return {
+        id,
+        type: it.type,
+        position: it.position,
+        data: it.data,
+        selected: true,
+        ...(it.type === 'room' ? { style: { width: 360, height: 260 } } : {}),
+      };
+    });
+    // Deselect existing nodes so the pasted ones are the active selection.
+    const nodes = [
+      ...wf.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      ...newNodes,
+    ];
+    const next = touch({ ...wf, nodes });
+    persist(next, { immediate: true });
+    set({
+      workflow: next,
+      selectedNodeId: ids[ids.length - 1] ?? null,
+      selectedEdgeId: null,
+      past: pushHistory(get().past, wf),
+      future: [],
+    });
+    return ids;
+  },
+
   setNodeParent: (childId, parentId, relativePosition) => {
     const wf = get().workflow;
     const nodes = wf.nodes.map((n) => {
@@ -355,6 +397,36 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     set({
       workflow: next,
       selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId,
+      past: pushHistory(get().past, wf),
+      future: [],
+    });
+  },
+
+  removeSelected: () => {
+    const wf = get().workflow;
+    const nodeIds = new Set(wf.nodes.filter((n) => n.selected).map((n) => n.id));
+    const edgeIds = new Set(wf.edges.filter((e) => e.selected).map((e) => e.id));
+    if (nodeIds.size === 0 && edgeIds.size === 0) {
+      const { selectedNodeId, selectedEdgeId } = get();
+      if (selectedNodeId) nodeIds.add(selectedNodeId);
+      if (selectedEdgeId) edgeIds.add(selectedEdgeId);
+    }
+    if (nodeIds.size === 0 && edgeIds.size === 0) return;
+    // Pull in room children of any selected node.
+    for (const n of wf.nodes) {
+      const pid = (n as FlowNode & { parentId?: string }).parentId;
+      if (pid && nodeIds.has(pid)) nodeIds.add(n.id);
+    }
+    const nodes = wf.nodes.filter((n) => !nodeIds.has(n.id));
+    const edges = wf.edges.filter(
+      (e) => !edgeIds.has(e.id) && !nodeIds.has(e.source) && !nodeIds.has(e.target)
+    );
+    const next = touch({ ...wf, nodes, edges });
+    persist(next, { immediate: true });
+    set({
+      workflow: next,
+      selectedNodeId: null,
+      selectedEdgeId: null,
       past: pushHistory(get().past, wf),
       future: [],
     });
