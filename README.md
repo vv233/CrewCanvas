@@ -2,7 +2,11 @@
 
 **Drag-and-drop orchestration for teams of AIs — 100% in your browser.**
 
+### ▶ [Live demo: crew.vk13.net](https://crew.vk13.net)
+
 Draw an org chart on a canvas, give each AI a personality, wire the roles together, and press **Run**. No backend, no sign-up, no server-side state — your keys and data never leave your browser.
+
+> The demo runs entirely in your browser and bring-your-own-key — anything you type stays on your device. Use at your own risk; don't enter keys on a shared machine.
 
 > UI is **English** by default with a **中文** toggle in the top bar. In-depth guides live in [`docs/`](./docs).
 
