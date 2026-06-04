@@ -128,7 +128,12 @@ export const en = {
     concat: 'Concatenate (join directly)',
     jsonMerge: 'JSON merge',
     pickFirst: 'Pick first returned',
-    summarize: 'AI summary (requires an agent)',
+    summarize: 'AI summary (LLM)',
+    summarizePromptLabel: 'Summary instruction',
+    summarizePromptPlaceholder:
+      'e.g. Merge the views into a 5-bullet executive summary, highlighting disagreements',
+    summarizeHint:
+      'The model reads all upstream outputs and writes one combined summary. Falls back to plain concatenation if the call fails.',
   },
   roomInspector: {
     modeLabel: 'Speaking mode',
@@ -441,6 +446,10 @@ export default {
     moderatorTag: '{{name}} (moderator)',
     summaryTag: '{{name}} (summary)',
     summaryPrompt: 'Based on the discussion history above, give a summary as the final conclusion.',
+    summarizeSystem:
+      'You are a summarizing agent. Combine the multiple upstream outputs the user provides into a single coherent result. Follow this instruction:\n\n{{instruction}}\n\nOutput only the final summary, with no preamble.',
+    summarizeDefaultInstruction:
+      'Synthesize all inputs into one clear, well-structured summary; keep key points and note any conflicts.',
     freeform: '(No input, feel free to improvise)',
     discussFirstMsg: 'Discussion topic: {{topic}}\n\nPlease share your view as {{name}}.',
     discussNextMsg:

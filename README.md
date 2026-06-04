@@ -56,4 +56,3 @@ API keys are stored in plaintext in your browser's `localStorage`, and every req
 - Node search & large-graph virtualization
 - Optional sync backend (multi-device)
 - Cancel in-flight requests in group-chat race mode
-- A real summarizing agent for the Aggregator `summarize` strategy

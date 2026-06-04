@@ -128,9 +128,11 @@ Members are ordinary `agent` nodes whose `parentId` is this room. In moderator m
 ### `aggregator`
 ```ts
 { kind: 'aggregator', name: string,
-  strategy: 'concat' | 'json-merge' | 'pick-first' | 'summarize' }
+  strategy: 'concat' | 'json-merge' | 'pick-first' | 'summarize',
+  // summarize only:
+  provider?: ProviderId, model?: string, prompt?: string }
 ```
-`json-merge` parses each input as JSON and `Object.assign`s them. `summarize` currently behaves like `concat` with headers (real summarization is on the roadmap).
+`json-merge` parses each input as JSON and `Object.assign`s them. `summarize` sends all upstream outputs to the bound `provider`/`model` with your `prompt` as the instruction and returns one combined summary; if no model is set it defaults to a lightweight model, and on any call failure it falls back to `concat` with headers.
 
 ### `router`
 ```ts

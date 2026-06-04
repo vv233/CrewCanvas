@@ -129,7 +129,10 @@ export const zh: Resources = {
     concat: '拼接（直接连起来）',
     jsonMerge: 'JSON 合并',
     pickFirst: '取第一个返回',
-    summarize: 'AI 总结（需配置 agent）',
+    summarize: 'AI 总结（LLM）',
+    summarizePromptLabel: '总结要求',
+    summarizePromptPlaceholder: '例如：把各方观点合并成 5 条要点的执行摘要，并标出分歧',
+    summarizeHint: '模型会读取所有上游输出，写成一份综合总结。调用失败时自动回退为直接拼接。',
   },
   roomInspector: {
     modeLabel: '发言模式',
@@ -436,6 +439,10 @@ export default {
     moderatorTag: '{{name}}(主持)',
     summaryTag: '{{name}}(总结)',
     summaryPrompt: '请基于以上讨论历史，给出一段总结作为最终结论。',
+    summarizeSystem:
+      '你是一个总结 agent。把用户提供的多份上游输出合并成一份连贯的结果，并遵循以下要求：\n\n{{instruction}}\n\n只输出最终的总结，不要任何开场白。',
+    summarizeDefaultInstruction:
+      '把所有输入综合成一份清晰、结构良好的总结；保留关键点并指出任何冲突之处。',
     freeform: '（无输入，请自由发挥）',
     discussFirstMsg: '讨论话题：{{topic}}\n\n请你作为{{name}}发表你的看法。',
     discussNextMsg: '话题：{{topic}}\n\n当前讨论历史：\n{{history}}\n\n请你作为{{name}}发表你的看法。',

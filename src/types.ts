@@ -94,6 +94,10 @@ export interface AggregatorNodeData extends Record<string, unknown> {
   kind: 'aggregator';
   name: string;
   strategy: 'concat' | 'json-merge' | 'pick-first' | 'summarize';
+  /** summarize: provider + model + custom instruction for the summarizing agent. */
+  provider?: ProviderId;
+  model?: string;
+  prompt?: string;
 }
 
 export interface RouterNodeData extends Record<string, unknown> {

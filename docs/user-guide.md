@@ -91,7 +91,7 @@ Seven types in the palette:
 
 **Branch** details: branch **`a`** is the top handle, **`b`** the bottom. *Regex* matches the upstream text against your pattern. *AI judge* makes a small model call — you write a **criterion**, the model reads the upstream output and answers `a`/`b` (matches → `a`, else `b`; falls back to `b` on error). Configure criterion + provider + model in the Inspector. Only the chosen branch runs; the rest are marked **skipped**.
 
-> Note: the Aggregate **summarize** strategy currently behaves like concat-with-headers; binding a real summarizing agent is on the roadmap.
+> Note: the Aggregate **summarize** strategy runs a real LLM call — pick a provider/model and write a summary instruction in the inspector, and it returns one combined summary of all upstream outputs. If the call fails it falls back to concat-with-headers.
 
 ---
 

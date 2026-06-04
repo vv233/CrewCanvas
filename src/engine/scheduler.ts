@@ -27,6 +27,10 @@ import { saveRun, type RunRecord } from '../storage/db';
 import { nanoid } from 'nanoid';
 import i18n from '../i18n';
 
+/** Default model for lightweight internal model calls (router LLM-judge,
+ *  aggregator summarize) when a node has no explicit model bound. */
+const DEFAULT_JUDGE_MODEL = 'openai/gpt-oss-120b:free';
+
 export interface RunHandle {
   abort: () => void;
   promise: Promise<void>;
@@ -207,7 +211,19 @@ async function runNode(
   }
 
   if (data.kind === 'aggregator') {
-    const out = aggregate(data as AggregatorNodeData, upstreamSummaries);
+    const agg = data as AggregatorNodeData;
+    if (agg.strategy === 'summarize') {
+      run.setNodeState(node.id, { status: 'running', startedAt: Date.now() });
+      run.log('info', i18n.t('engine.calling', {
+        provider: agg.provider ?? 'openrouter',
+        model: agg.model ?? DEFAULT_JUDGE_MODEL,
+      }), node.id);
+      const out = await summarizeAggregate(agg, upstreamSummaries, signal);
+      outputs.set(node.id, out);
+      run.setNodeState(node.id, { status: 'done', output: out, finishedAt: Date.now() });
+      return;
+    }
+    const out = aggregate(agg, upstreamSummaries);
     outputs.set(node.id, out);
     run.setNodeState(node.id, {
       status: 'done',
@@ -673,7 +689,7 @@ async function routeBranch(
 
   // llm-judge: a lightweight model call returns a single letter ("a"/"b").
   const provider = getProvider(router.provider ?? 'openrouter');
-  const model = router.model ?? 'openai/gpt-oss-120b:free';
+  const model = router.model ?? DEFAULT_JUDGE_MODEL;
   const system = i18n.t('engine.routerJudgeSystem', {
     criteria: (router.prompt ?? '').trim() || '(no criterion provided)',
   });
@@ -722,6 +738,10 @@ function buildUserMessage(
   return parts.join('\n\n');
 }
 
+function concatInputs(inputs: { name: string; text: string }[]): string {
+  return inputs.map((i) => `## ${i.name}\n${i.text}`).join('\n\n');
+}
+
 function aggregate(
   cfg: AggregatorNodeData,
   inputs: { name: string; text: string }[]
@@ -741,11 +761,45 @@ function aggregate(
       }
       return JSON.stringify(merged, null, 2);
     }
+    // 'summarize' is handled asynchronously by summarizeAggregate() in the
+    // scheduler before aggregate() is reached; concat is a safe fallback.
     case 'summarize':
-      // 真正的 AI 总结需要一个绑定的 agent；M4 时增强
-      return inputs.map((i) => `## ${i.name}\n${i.text}`).join('\n\n');
     case 'concat':
     default:
-      return inputs.map((i) => `## ${i.name}\n${i.text}`).join('\n\n');
+      return concatInputs(inputs);
   }
+}
+
+/** Summarize all upstream outputs through a bound model. On any provider/network
+ *  error (or empty result) falls back to plain concatenation so the flow still
+ *  produces output. */
+async function summarizeAggregate(
+  cfg: AggregatorNodeData,
+  inputs: { name: string; text: string }[],
+  signal: AbortSignal
+): Promise<string> {
+  const material = concatInputs(inputs);
+  if (!material.trim()) return i18n.t('engine.noUpstream');
+  const provider = getProvider(cfg.provider ?? 'openrouter');
+  const model = cfg.model ?? DEFAULT_JUDGE_MODEL;
+  const system = i18n.t('engine.summarizeSystem', {
+    instruction:
+      (cfg.prompt ?? '').trim() || i18n.t('engine.summarizeDefaultInstruction'),
+  });
+  let text = '';
+  try {
+    for await (const chunk of provider.stream({
+      model,
+      systemPrompt: system,
+      messages: [{ role: 'user', content: material }],
+      temperature: 0.3,
+      maxTokens: 1024,
+      signal,
+    })) {
+      if (chunk.delta) text += chunk.delta;
+    }
+  } catch {
+    return material;
+  }
+  return text.trim() || material;
 }
