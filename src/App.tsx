@@ -1,3 +1,4 @@
+import { ReactFlowProvider } from '@xyflow/react';
 import { useEffect, useRef, useState } from 'react';
 import { FlowCanvas } from './canvas/FlowCanvas';
 import { NodePalette } from './canvas/NodePalette';
@@ -15,9 +16,8 @@ import { runWorkflow, type RunHandle } from './engine/scheduler';
 import { migrateLegacyKnowledge } from './rag/store';
 import { nanoid } from 'nanoid';
 import { useTranslation } from 'react-i18next';
-import type { AnyNodeData, NodeType } from './types';
-
-type ClipNode = { type: NodeType; position: { x: number; y: number }; data: AnyNodeData };
+import { useMediaQuery } from './lib/useMediaQuery';
+import { useUiStore } from './state/uiStore';
 
 export default function App() {
   const { t } = useTranslation();
@@ -27,8 +27,13 @@ export default function App() {
   const [filesOpen, setFilesOpen] = useState(false);
   const [ragLibraryOpen, setRagLibraryOpen] = useState(false);
   const runRef = useRef<RunHandle | null>(null);
-  const clipboardRef = useRef<ClipNode[]>([]);
-  const pasteSeqRef = useRef(0);
+  const isLargeScreen = useMediaQuery('(min-width: 1024px)');
+  const paletteOpen = useUiStore((s) => s.paletteOpen);
+  const inspectorOpen = useUiStore((s) => s.inspectorOpen);
+  const setPaletteOpen = useUiStore((s) => s.setPaletteOpen);
+  const setInspectorOpen = useUiStore((s) => s.setInspectorOpen);
+  const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId);
+  const selectedEdgeId = useWorkflowStore((s) => s.selectedEdgeId);
 
   const handleRun = async () => {
     if (useRunStore.getState().isRunning) return;
@@ -108,54 +113,87 @@ export default function App() {
       } else if (k === 'c') {
         // Copy selected nodes — but let native text copy win if text is selected.
         if (window.getSelection()?.toString()) return;
-        const sel = store.workflow.nodes.filter((n) => n.selected);
-        if (sel.length === 0) return;
+        const copied = useUiStore.getState().copySelection();
+        if (!copied) return;
         e.preventDefault();
-        clipboardRef.current = sel.map((n) => ({
-          type: n.type as NodeType,
-          position: n.position,
-          data: structuredClone(n.data),
-        }));
-        pasteSeqRef.current = 0;
       } else if (k === 'v') {
-        if (clipboardRef.current.length === 0) return;
+        if (useUiStore.getState().clipboard.length === 0) return;
         e.preventDefault();
-        pasteSeqRef.current += 1;
-        const off = 32 * pasteSeqRef.current;
-        store.duplicateNodes(
-          clipboardRef.current.map((c) => ({
-            type: c.type,
-            position: { x: c.position.x + off, y: c.position.y + off },
-            data: structuredClone(c.data),
-          }))
-        );
+        useUiStore.getState().pasteClipboard();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (!isLargeScreen) return;
+    setPaletteOpen(false);
+    setInspectorOpen(false);
+  }, [isLargeScreen, setInspectorOpen, setPaletteOpen]);
+
+  useEffect(() => {
+    if (isLargeScreen || (!selectedNodeId && !selectedEdgeId)) return;
+    setInspectorOpen(true);
+  }, [isLargeScreen, selectedEdgeId, selectedNodeId, setInspectorOpen]);
+
+  const closeMobilePanels = () => {
+    setPaletteOpen(false);
+    setInspectorOpen(false);
+  };
+
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-bg pt-safe">
       <TopBar
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenFiles={() => setFilesOpen(true)}
         onOpenRagLibrary={() => setRagLibraryOpen(true)}
+        onTogglePalette={() => setPaletteOpen(!paletteOpen)}
+        onToggleInspector={() => setInspectorOpen(!inspectorOpen)}
+        paletteOpen={paletteOpen}
+        inspectorOpen={inspectorOpen}
         onRun={handleRun}
         onStop={handleStop}
       />
-      <div className="flex min-h-0 flex-1">
-        <NodePalette />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1">
-            <FlowCanvas />
+      <ReactFlowProvider>
+        <div className="relative flex min-h-0 flex-1 overflow-hidden">
+          {isLargeScreen ? <NodePalette /> : null}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1">
+              <FlowCanvas />
+            </div>
+            <RunConsole />
           </div>
-          <RunConsole />
+          {isLargeScreen ? <Inspector /> : null}
+
+          {!isLargeScreen && (paletteOpen || inspectorOpen) ? (
+            <div
+              className="absolute inset-0 z-30 bg-black/45 backdrop-blur-[1px]"
+              onClick={closeMobilePanels}
+            />
+          ) : null}
+          {!isLargeScreen ? (
+            <>
+              <div
+                className={`absolute inset-y-0 left-0 z-40 w-[min(18rem,86vw)] transform transition-transform duration-200 ${
+                  paletteOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-full'
+                }`}
+              >
+                <NodePalette className="w-full shadow-2xl" onAddNode={closeMobilePanels} />
+              </div>
+              <div
+                className={`absolute inset-y-0 right-0 z-40 w-[min(22rem,92vw)] transform transition-transform duration-200 ${
+                  inspectorOpen ? 'translate-x-0' : 'pointer-events-none translate-x-full'
+                }`}
+              >
+                <Inspector className="w-full shadow-2xl" />
+              </div>
+            </>
+          ) : null}
         </div>
-        <Inspector />
-      </div>
+      </ReactFlowProvider>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <TemplatesDialog open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
       <HistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />

@@ -60,11 +60,11 @@ export function ImportTsDialog({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="card flex max-h-[90vh] w-full max-w-3xl flex-col"
+        className="card flex h-full max-h-none w-full max-w-3xl flex-col rounded-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
@@ -116,7 +116,7 @@ export function ImportTsDialog({ open, onClose }: Props) {
           ) : null}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3">
           <button className="btn-ghost" onClick={onClose}>
             {t('common.cancel')}
           </button>

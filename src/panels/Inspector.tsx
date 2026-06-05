@@ -10,7 +10,11 @@ import { DiscussInspector } from './DiscussInspector';
 import { EdgeInspector } from './EdgeInspector';
 import { BulkInspector } from './BulkInspector';
 
-export function Inspector() {
+interface Props {
+  className?: string;
+}
+
+export function Inspector({ className }: Props) {
   const { t } = useTranslation();
   const workflow = useWorkflowStore((s) => s.workflow);
   const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId);
@@ -27,7 +31,11 @@ export function Inspector() {
   const edge = workflow.edges.find((e) => e.id === selectedEdgeId);
 
   return (
-    <div className="flex h-full w-80 shrink-0 flex-col border-l border-line bg-bg-soft">
+    <div
+      className={`flex h-full shrink-0 flex-col border-l border-line bg-bg-soft ${
+        className ?? 'w-80'
+      }`}
+    >
       <div className="border-b border-line px-3 py-2">
         <div className="label">{t('inspector.heading')}</div>
         <div className="mt-1 text-[11px] text-muted">

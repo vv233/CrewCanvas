@@ -126,21 +126,21 @@ export function FilesDialog({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="card flex max-h-[90vh] w-full max-w-4xl flex-col"
+        className="card flex h-full max-h-none w-full max-w-4xl flex-col rounded-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line px-4 py-3">
+          <div className="min-w-0">
             <div className="text-base font-semibold text-ink">{t('files.title')}</div>
             <div className="text-[11px] text-muted">
               {t('files.subtitle', { name: workflow.name })}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <button
               className="btn-ghost"
               onClick={() => setNewOpen((v) => !v)}
@@ -190,8 +190,8 @@ export function FilesDialog({ open, onClose }: Props) {
           </div>
         ) : null}
 
-        <div className="flex min-h-0 flex-1">
-          <div className="w-64 shrink-0 overflow-auto border-r border-line">
+        <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+          <div className="max-h-44 w-full shrink-0 overflow-auto border-b border-line sm:max-h-none sm:w-64 sm:border-b-0 sm:border-r">
             {entries.length === 0 && !loading ? (
               <div className="p-4 text-center text-[12px] text-muted">
                 {t('files.empty')}
@@ -223,10 +223,10 @@ export function FilesDialog({ open, onClose }: Props) {
             )}
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {selected ? (
               <>
-                <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
                   <span className="flex-1 truncate font-mono text-[12px] text-ink">
                     {selected.path}
                   </span>

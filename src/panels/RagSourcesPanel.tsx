@@ -204,7 +204,7 @@ export function RagSourcesPanel({
           {t('rag.empty')}
         </div>
       ) : (
-        <div className={compact ? 'space-y-1' : 'grid min-h-0 grid-cols-[18rem_1fr] gap-3'}>
+        <div className={compact ? 'space-y-1' : 'grid min-h-0 gap-3 lg:grid-cols-[18rem_1fr]'}>
           <ul className="space-y-1">
             {sources.map((s) => (
               <li

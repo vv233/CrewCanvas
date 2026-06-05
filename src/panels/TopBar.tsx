@@ -14,6 +14,8 @@ import {
   FolderOpen,
   Database,
   Languages,
+  PanelLeftOpen,
+  PanelRightOpen,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
@@ -39,6 +41,10 @@ interface Props {
   onOpenHistory: () => void;
   onOpenFiles: () => void;
   onOpenRagLibrary: () => void;
+  onTogglePalette: () => void;
+  onToggleInspector: () => void;
+  paletteOpen: boolean;
+  inspectorOpen: boolean;
   onRun: () => void;
   onStop: () => void;
 }
@@ -49,6 +55,10 @@ export function TopBar({
   onOpenHistory,
   onOpenFiles,
   onOpenRagLibrary,
+  onTogglePalette,
+  onToggleInspector,
+  paletteOpen,
+  inspectorOpen,
   onRun,
   onStop,
 }: Props) {
@@ -127,17 +137,34 @@ export function TopBar({
   };
 
   return (
-    <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-bg-soft px-3">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-white text-xs font-bold">CC</div>
-        <span className="text-sm font-semibold text-ink">CrewCanvas</span>
+    <div className="px-safe flex min-h-12 shrink-0 items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-line bg-bg-soft px-3 py-2 lg:h-12 lg:py-0">
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-xs font-bold text-white">CC</div>
+        <span className="hidden text-sm font-semibold text-ink sm:inline">CrewCanvas</span>
       </div>
-      <div className="mx-3 h-5 w-px bg-line" />
+      <button
+        className="btn-ghost h-8 px-2 lg:hidden"
+        onClick={onTogglePalette}
+        title={t('topbar.nodes')}
+        aria-label={t('topbar.nodes')}
+        aria-pressed={paletteOpen}
+      >
+        <PanelLeftOpen size={14} />
+      </button>
+      <button
+        className="btn-ghost h-8 px-2 lg:hidden"
+        onClick={onToggleInspector}
+        title={t('topbar.inspector')}
+        aria-label={t('topbar.inspector')}
+        aria-pressed={inspectorOpen}
+      >
+        <PanelRightOpen size={14} />
+      </button>
+      <div className="hidden h-5 w-px shrink-0 bg-line sm:block" />
       <input
-        className="rounded px-2 py-1 text-sm font-medium text-ink bg-transparent hover:bg-panel focus:bg-panel focus:outline-none"
+        className="w-36 shrink-0 rounded bg-transparent px-2 py-1 text-sm font-medium text-ink hover:bg-panel focus:bg-panel focus:outline-none sm:w-56"
         value={workflow.name}
         onChange={(e) => setName(e.target.value)}
-        style={{ width: '14rem' }}
       />
       <button
         className="btn-ghost h-8 px-2 disabled:opacity-40"
@@ -155,35 +182,35 @@ export function TopBar({
       >
         <Redo2 size={14} />
       </button>
-      <div className="flex-1" />
+      <div className="hidden flex-1 lg:block" />
       <button className="btn-ghost" onClick={onOpenTemplates} title={t('topbar.templatesTitle')}>
-        <LayoutTemplate size={14} /> {t('topbar.templates')}
+        <LayoutTemplate size={14} /> <span className="hidden xl:inline">{t('topbar.templates')}</span>
       </button>
       <button className="btn-ghost" onClick={onOpenFiles} title={t('topbar.filesTitle')}>
-        <FolderOpen size={14} /> {t('topbar.files')}
+        <FolderOpen size={14} /> <span className="hidden xl:inline">{t('topbar.files')}</span>
       </button>
       <button className="btn-ghost" onClick={onOpenRagLibrary} title={t('topbar.ragLibraryTitle')}>
-        <Database size={14} /> {t('topbar.ragLibrary')}
+        <Database size={14} /> <span className="hidden xl:inline">{t('topbar.ragLibrary')}</span>
       </button>
       <button className="btn-ghost" onClick={onOpenHistory} title={t('topbar.historyTitle')}>
-        <HistoryIcon size={14} /> {t('topbar.history')}
+        <HistoryIcon size={14} /> <span className="hidden xl:inline">{t('topbar.history')}</span>
       </button>
       <button
         className="btn-ghost"
         onClick={handleImportRoleCards}
         title={t('topbar.importRoleCardTitle')}
       >
-        <UserPlus size={14} /> {t('topbar.importRoleCard')}
+        <UserPlus size={14} /> <span className="hidden xl:inline">{t('topbar.importRoleCard')}</span>
       </button>
       <button className="btn-ghost" onClick={handleImport} title={t('topbar.importTitle')}>
-        <Upload size={14} /> {t('topbar.import')}
+        <Upload size={14} /> <span className="hidden xl:inline">{t('topbar.import')}</span>
       </button>
       <button
         className="btn-ghost"
         onClick={() => setExportOpen(true)}
         title={t('topbar.exportTitle')}
       >
-        <Download size={14} /> {t('topbar.export')}
+        <Download size={14} /> <span className="hidden xl:inline">{t('topbar.export')}</span>
       </button>
       <button
         className="btn-ghost"
@@ -195,7 +222,7 @@ export function TopBar({
         <RotateCcw size={14} />
       </button>
       <button className="btn-ghost" onClick={onOpenSettings}>
-        <SettingsIcon size={14} /> {t('topbar.settings')}
+        <SettingsIcon size={14} /> <span className="hidden xl:inline">{t('topbar.settings')}</span>
       </button>
       <button
         className="btn-ghost"
@@ -205,12 +232,18 @@ export function TopBar({
         <Languages size={14} /> {language === 'en' ? '中文' : 'EN'}
       </button>
       {isRunning ? (
-        <button className="btn-danger" onClick={onStop}>
-          <Square size={14} /> {t('topbar.stop')}
+        <button
+          className="btn-danger sticky right-0 z-10 shrink-0 shadow-[-10px_0_14px_rgba(17,20,27,0.9)]"
+          onClick={onStop}
+        >
+          <Square size={14} /> <span>{t('topbar.stop')}</span>
         </button>
       ) : (
-        <button className="btn-primary" onClick={onRun}>
-          <Play size={14} /> {t('topbar.run')}
+        <button
+          className="btn-primary sticky right-0 z-10 shrink-0 shadow-[-10px_0_14px_rgba(17,20,27,0.9)]"
+          onClick={onRun}
+        >
+          <Play size={14} /> <span>{t('topbar.run')}</span>
         </button>
       )}
       <ExportDialog

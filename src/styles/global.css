@@ -7,11 +7,22 @@
   body,
   #root {
     height: 100%;
+    width: 100%;
     margin: 0;
     background: #0b0d12;
     color: #e6e8ee;
     font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     overflow: hidden;
+    /* No pull-to-refresh / rubber-band while panning the canvas on touch. */
+    overscroll-behavior: none;
+  }
+
+  /* iOS Safari: 100% of the *dynamic* viewport so the bottom bar never
+     covers the run console / toolbars when the URL bar collapses. */
+  body,
+  #root {
+    height: 100vh;
+    height: 100dvh;
   }
 
   *,
@@ -60,6 +71,20 @@
   }
 }
 
+@layer utilities {
+  /* Notch / home-indicator insets (viewport-fit=cover). */
+  .pt-safe {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+  .pb-safe {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+  .px-safe {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+}
+
 /* React Flow theme overrides */
 .react-flow {
   background-color: #0b0d12;
@@ -98,6 +123,10 @@
 .react-flow__connection-path {
   stroke-width: 1.5;
 }
+.react-flow__pane {
+  /* The canvas owns its touch gestures (pan / pinch); never scroll the page. */
+  touch-action: none;
+}
 .react-flow__handle {
   width: 10px;
   height: 10px;
@@ -106,6 +135,39 @@
 }
 .react-flow__handle:hover {
   background: #818cf8;
+}
+@media (pointer: coarse) {
+  button,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  .btn {
+    min-height: 2.5rem;
+  }
+
+  .react-flow__controls-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Invisible expanded hit zone so handles are tappable on touch screens
+     while the visible dot stays small. */
+  .react-flow__handle::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    transform: translate(-50%, -50%);
+  }
 }
 .react-flow__node {
   font-family: inherit;

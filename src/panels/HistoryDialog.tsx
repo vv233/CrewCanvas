@@ -32,11 +32,11 @@ export function HistoryDialog({ open, onClose }: Props) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="card flex max-h-[90vh] w-full max-w-4xl flex-col"
+        className="card flex h-full max-h-none w-full max-w-4xl flex-col rounded-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
@@ -57,7 +57,7 @@ export function HistoryDialog({ open, onClose }: Props) {
                 return (
                   <li key={r.id} className="rounded-md border border-line">
                     <div
-                      className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-panel"
+                      className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2 hover:bg-panel"
                       onClick={() => setExpandedId(expanded ? null : r.id)}
                     >
                       {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -71,7 +71,7 @@ export function HistoryDialog({ open, onClose }: Props) {
                         {new Date(r.startedAt).toLocaleString()} ·{' '}
                         {Math.round((r.finishedAt - r.startedAt) / 100) / 10}s
                       </span>
-                      <div className="flex-1" />
+                      <div className="hidden flex-1 sm:block" />
                       <button
                         className="rounded p-1 text-muted hover:bg-bg hover:text-accent-danger"
                         onClick={(e) => {

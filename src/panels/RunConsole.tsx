@@ -27,16 +27,16 @@ export function RunConsole() {
   const nameOf = (id: string) => nodeNameById.get(id);
 
   return (
-    <div className="shrink-0 border-t border-line bg-bg-soft">
+    <div className="pb-safe shrink-0 border-t border-line bg-bg-soft">
       <div
-        className="flex h-9 cursor-pointer items-center justify-between px-3 hover:bg-panel"
+        className="flex min-h-9 cursor-pointer items-center justify-between gap-2 px-3 py-1 hover:bg-panel"
         onClick={() => setOpen(!open)}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-xs font-medium uppercase tracking-wider text-muted">
             {t('runConsole.title')}
           </span>
-          <span className="text-[11px] text-muted">
+          <span className="truncate text-[11px] text-muted">
             {t('runConsole.stats', { logs: logs.length, nodes: nodeStateCount })}
           </span>
         </div>
@@ -59,13 +59,13 @@ export function RunConsole() {
       {open ? (
         <div
           ref={scrollRef}
-          className="h-44 overflow-auto px-3 py-2 font-mono text-[11px] leading-relaxed"
+          className="h-32 overflow-auto px-3 py-2 font-mono text-[11px] leading-relaxed sm:h-44"
         >
           {logs.length === 0 ? (
             <div className="text-muted">{t('runConsole.empty')}</div>
           ) : (
             logs.map((l, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="grid grid-cols-[auto_auto_minmax(0,1fr)] gap-2">
                 <span className="shrink-0 text-muted">
                   {new Date(l.ts).toLocaleTimeString()}
                 </span>

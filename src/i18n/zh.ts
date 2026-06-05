@@ -51,10 +51,12 @@ export const zh: Resources = {
     importFailed: '导入失败：{{msg}}',
     exportFailed: '导出失败：{{msg}}',
     language: '语言',
+    nodes: '节点',
+    inspector: '检查器',
   },
   palette: {
     heading: '节点',
-    hint: '拖到画布上添加',
+    hint: '拖拽或点按添加',
     trigger: { label: '任务入口', desc: '工作流起点' },
     agent: { label: 'AI 员工', desc: '有 soul.md 的 AI 角色' },
     discuss: { label: '与用户讨论', desc: '暂停等用户和 AI 讨论方案' },
@@ -62,6 +64,16 @@ export const zh: Resources = {
     aggregator: { label: '汇总', desc: '合并多个上游' },
     router: { label: '分流', desc: '按规则走不同分支' },
     output: { label: '输出', desc: '终点显示结果' },
+  },
+  canvas: {
+    panMode: '平移画布',
+    selectMode: '框选节点',
+  },
+  toolbar: {
+    copy: '复制',
+    paste: '粘贴',
+    duplicate: '复制一份',
+    delete: '删除',
   },
   nodes: {
     trigger: { subtitle: '工作流入口' },

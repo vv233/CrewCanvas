@@ -49,11 +49,11 @@ export function SettingsDialog({ open, onClose }: Props) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="card flex max-h-[90vh] w-full max-w-2xl flex-col"
+        className="card flex h-full max-h-none w-full max-w-2xl flex-col rounded-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
@@ -153,7 +153,7 @@ export function SettingsDialog({ open, onClose }: Props) {
                 onChange={(e) => s.update({ openrouterBaseUrl: e.target.value })}
               />
             </Field>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               <Field label={t('settings.referer')}>
                 <input
                   className="input"
@@ -269,7 +269,7 @@ function Section({
 }) {
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-ink">{title}</div>
         {test}
       </div>
@@ -289,14 +289,14 @@ function PingButton({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
       {state === 'ok' ? (
         <span className="flex items-center gap-1 text-[11px] text-emerald-400" title={msg}>
           <CheckCircle2 size={12} /> {t('settings.connectedBadge')}
         </span>
       ) : state === 'fail' ? (
         <span
-          className="flex max-w-[260px] items-center gap-1 truncate text-[11px] text-accent-danger"
+          className="flex max-w-[11rem] items-center gap-1 truncate text-[11px] text-accent-danger sm:max-w-[260px]"
           title={msg}
         >
           <AlertCircle size={12} /> {msg.slice(0, 50)}

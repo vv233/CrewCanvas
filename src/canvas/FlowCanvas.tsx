@@ -3,8 +3,8 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  Panel,
   ReactFlow,
-  ReactFlowProvider,
   SelectionMode,
   useReactFlow,
   type Node,
@@ -12,8 +12,12 @@ import {
   type EdgeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Hand, MousePointer2 } from 'lucide-react';
 import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
+import { useUiStore, type InteractionMode } from '../state/uiStore';
+import { usePointerCoarse } from '../lib/useMediaQuery';
 import { AgentNode } from './nodes/AgentNode';
 import { TriggerNode } from './nodes/TriggerNode';
 import { OutputNode } from './nodes/OutputNode';
@@ -22,6 +26,7 @@ import { AggregatorNode } from './nodes/AggregatorNode';
 import { RouterNode } from './nodes/RouterNode';
 import { DiscussNode } from './nodes/DiscussNode';
 import { TypedEdge } from './edges/TypedEdge';
+import { SelectionToolbar } from './SelectionToolbar';
 import type { NodeType } from '../types';
 
 const nodeTypes: NodeTypes = {
@@ -62,6 +67,8 @@ function CanvasInner() {
   const addNode = useWorkflowStore((s) => s.addNode);
 
   const setNodeParent = useWorkflowStore((s) => s.setNodeParent);
+  const pointerCoarse = usePointerCoarse();
+  const interactionMode = useUiStore((s) => s.interactionMode);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, getIntersectingNodes, getNode } = useReactFlow();
 
@@ -132,10 +139,10 @@ function CanvasInner() {
         deleteKeyCode={null}
         // Box (rubber-band) selection: left-drag on empty canvas draws a
         // selection rectangle; pan with middle/right mouse or hold Space.
-        selectionOnDrag
+        selectionOnDrag={pointerCoarse ? interactionMode === 'select' : true}
         selectionMode={SelectionMode.Partial}
-        panOnDrag={[1, 2]}
-        panActivationKeyCode="Space"
+        panOnDrag={pointerCoarse ? interactionMode === 'pan' : [1, 2]}
+        panActivationKeyCode={pointerCoarse ? null : 'Space'}
         onPaneClick={() => {
           selectNode(null);
           selectEdge(null);
@@ -145,37 +152,73 @@ function CanvasInner() {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#252a36" />
         <Controls position="bottom-left" />
-        <MiniMap
-          position="bottom-right"
-          nodeColor={(n) => {
-            switch (n.type) {
-              case 'agent':
-                return '#6366f1';
-              case 'trigger':
-                return '#f97316';
-              case 'output':
-                return '#10b981';
-              case 'room':
-                return '#22d3ee';
-              case 'router':
-                return '#f59e0b';
-              case 'aggregator':
-                return '#a78bfa';
-              default:
-                return '#888';
-            }
-          }}
-          maskColor="rgba(11, 13, 18, 0.7)"
-        />
+        {!pointerCoarse ? (
+          <MiniMap
+            position="bottom-right"
+            nodeColor={(n) => {
+              switch (n.type) {
+                case 'agent':
+                  return '#6366f1';
+                case 'trigger':
+                  return '#f97316';
+                case 'output':
+                  return '#10b981';
+                case 'room':
+                  return '#22d3ee';
+                case 'router':
+                  return '#f59e0b';
+                case 'aggregator':
+                  return '#a78bfa';
+                default:
+                  return '#888';
+              }
+            }}
+            maskColor="rgba(11, 13, 18, 0.7)"
+          />
+        ) : (
+          <>
+            <TouchModePanel mode={interactionMode} />
+            <SelectionToolbar />
+          </>
+        )}
       </ReactFlow>
     </div>
   );
 }
 
-export function FlowCanvas() {
+function TouchModePanel({ mode }: { mode: InteractionMode }) {
+  const { t } = useTranslation();
+  const setInteractionMode = useUiStore((s) => s.setInteractionMode);
+  const btn =
+    'flex h-10 w-10 items-center justify-center rounded-md text-ink/75 hover:bg-bg hover:text-ink';
+  const active = 'bg-accent/20 text-accent';
+
   return (
-    <ReactFlowProvider>
-      <CanvasInner />
-    </ReactFlowProvider>
+    <Panel position="top-left">
+      <div className="flex items-center gap-0.5 rounded-lg border border-line bg-panel/95 p-1 shadow-lg backdrop-blur">
+        <button
+          className={`${btn} ${mode === 'pan' ? active : ''}`}
+          onClick={() => setInteractionMode('pan')}
+          title={t('canvas.panMode')}
+          aria-label={t('canvas.panMode')}
+          aria-pressed={mode === 'pan'}
+        >
+          <Hand size={17} />
+        </button>
+        <button
+          className={`${btn} ${mode === 'select' ? active : ''}`}
+          onClick={() => setInteractionMode('select')}
+          title={t('canvas.selectMode')}
+          aria-label={t('canvas.selectMode')}
+          aria-pressed={mode === 'select'}
+        >
+          <MousePointer2 size={17} />
+        </button>
+      </div>
+    </Panel>
   );
+}
+
+export function FlowCanvas() {
+  return <CanvasInner />;
 }

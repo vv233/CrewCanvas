@@ -49,10 +49,12 @@ export const en = {
     importFailed: 'Import failed: {{msg}}',
     exportFailed: 'Export failed: {{msg}}',
     language: 'Language',
+    nodes: 'Nodes',
+    inspector: 'Inspector',
   },
   palette: {
     heading: 'Nodes',
-    hint: 'Drag onto the canvas to add',
+    hint: 'Drag or tap to add',
     trigger: { label: 'Task Entry', desc: 'Workflow start' },
     agent: { label: 'AI Worker', desc: 'An AI role with soul.md' },
     discuss: { label: 'Discuss with User', desc: 'Pause for you and the AI to discuss' },
@@ -60,6 +62,16 @@ export const en = {
     aggregator: { label: 'Aggregate', desc: 'Merge multiple upstreams' },
     router: { label: 'Branch', desc: 'Route to branches by rule' },
     output: { label: 'Output', desc: 'Final result display' },
+  },
+  canvas: {
+    panMode: 'Pan canvas',
+    selectMode: 'Select area',
+  },
+  toolbar: {
+    copy: 'Copy',
+    paste: 'Paste',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
   },
   nodes: {
     trigger: { subtitle: 'Workflow entry' },
