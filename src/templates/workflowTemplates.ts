@@ -2,6 +2,7 @@ import type { AnyNodeData, Workflow } from '../types';
 import { nanoid } from 'nanoid';
 import { SOUL_PRESETS } from './soulPresets';
 import { defaultNodeData } from '../lib/nodeFactory';
+import { emptyTarget } from '../lib/target';
 import i18n from '../i18n';
 
 export interface WorkflowTemplate {
@@ -43,6 +44,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         createdAt: Date.now(),
         updatedAt: Date.now(),
         variables: {},
+        target: emptyTarget(),
         nodes: [
           {
             id: trig,

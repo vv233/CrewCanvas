@@ -10,6 +10,7 @@ import { TemplatesDialog } from './panels/TemplatesDialog';
 import { HistoryDialog } from './panels/HistoryDialog';
 import { FilesDialog } from './panels/FilesDialog';
 import { RagLibraryDialog } from './panels/RagLibraryDialog';
+import { TargetDialog } from './panels/TargetDialog';
 import { useRunStore } from './state/runStore';
 import { useWorkflowStore } from './state/workflowStore';
 import { runWorkflow, type RunHandle } from './engine/scheduler';
@@ -26,6 +27,7 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
   const [ragLibraryOpen, setRagLibraryOpen] = useState(false);
+  const [targetOpen, setTargetOpen] = useState(false);
   const runRef = useRef<RunHandle | null>(null);
   const isLargeScreen = useMediaQuery('(min-width: 1024px)');
   const paletteOpen = useUiStore((s) => s.paletteOpen);
@@ -150,6 +152,7 @@ export default function App() {
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenFiles={() => setFilesOpen(true)}
         onOpenRagLibrary={() => setRagLibraryOpen(true)}
+        onOpenTarget={() => setTargetOpen(true)}
         onTogglePalette={() => setPaletteOpen(!paletteOpen)}
         onToggleInspector={() => setInspectorOpen(!inspectorOpen)}
         paletteOpen={paletteOpen}
@@ -199,6 +202,7 @@ export default function App() {
       <HistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
       <FilesDialog open={filesOpen} onClose={() => setFilesOpen(false)} />
       <RagLibraryDialog open={ragLibraryOpen} onClose={() => setRagLibraryOpen(false)} />
+      <TargetDialog open={targetOpen} onClose={() => setTargetOpen(false)} />
     </div>
   );
 }

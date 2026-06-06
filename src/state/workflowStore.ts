@@ -17,8 +17,11 @@ import type {
   FlowNode,
   NodeType,
   Workflow,
+  WorkflowTarget,
+  WorkflowTargetReview,
 } from '../types';
 import { defaultNodeData } from '../lib/nodeFactory';
+import { emptyTarget, normalizeTarget } from '../lib/target';
 import i18n from '../i18n';
 
 const STORAGE_KEY = 'aiof.workflow.v1';
@@ -32,6 +35,8 @@ interface WorkflowStore {
 
   setWorkflowName: (name: string) => void;
   setVariables: (vars: Record<string, string>) => void;
+  setTarget: (target: WorkflowTarget) => void;
+  setTargetReview: (review: WorkflowTargetReview) => void;
 
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -103,8 +108,16 @@ function emptyWorkflow(): Workflow {
     nodes: [],
     edges: [],
     variables: {},
+    target: emptyTarget(),
     createdAt: Date.now(),
     updatedAt: Date.now(),
+  };
+}
+
+function normalizeWorkflow(wf: Workflow): Workflow {
+  return {
+    ...wf,
+    target: normalizeTarget((wf as Workflow & { target?: unknown }).target),
   };
 }
 
@@ -114,7 +127,7 @@ function loadFromStorage(): Workflow {
     if (!raw) return seedWorkflow();
     const parsed = JSON.parse(raw) as Workflow;
     if (!parsed.nodes) return seedWorkflow();
-    return parsed;
+    return normalizeWorkflow(parsed);
   } catch {
     return seedWorkflow();
   }
@@ -225,6 +238,27 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const wf = touch({ ...get().workflow, variables });
     persist(wf);
     set({ workflow: wf });
+  },
+
+  setTarget: (target) => {
+    const wf = get().workflow;
+    const next = touch({ ...wf, target: normalizeTarget(target) });
+    persist(next, { immediate: true });
+    set({
+      workflow: next,
+      past: pushHistory(get().past, wf),
+      future: [],
+    });
+  },
+
+  setTargetReview: (review) => {
+    const wf = get().workflow;
+    const next = touch({
+      ...wf,
+      target: normalizeTarget({ ...wf.target, lastReview: review }),
+    });
+    persist(next, { immediate: true });
+    set({ workflow: next });
   },
 
   onNodesChange: (changes) => {
@@ -480,9 +514,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   loadWorkflow: (wf) => {
     const prev = get().workflow;
-    persist(wf, { immediate: true });
+    const next = normalizeWorkflow(wf);
+    persist(next, { immediate: true });
     set({
-      workflow: wf,
+      workflow: next,
       selectedNodeId: null,
       selectedEdgeId: null,
       past: pushHistory(get().past, prev),

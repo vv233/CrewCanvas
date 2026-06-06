@@ -154,9 +154,41 @@ export interface EdgeData extends Record<string, unknown> {
 
 export type FlowEdge = Edge<EdgeData>;
 
+export type TargetStatus = 'draft' | 'active' | 'blocked' | 'complete';
+
+export interface WorkflowTargetItem {
+  id: string;
+  text: string;
+  done: boolean;
+  note?: string;
+  updatedAt: number;
+}
+
+export interface WorkflowTargetReview {
+  at: number;
+  status: TargetStatus;
+  checklistDone: number;
+  checklistTotal: number;
+  summary: string;
+}
+
+export interface WorkflowTarget {
+  enabled: boolean;
+  title: string;
+  objective: string;
+  status: TargetStatus;
+  context: string;
+  acceptanceCriteria: WorkflowTargetItem[];
+  constraints: WorkflowTargetItem[];
+  checklist: WorkflowTargetItem[];
+  risks: string;
+  lastReview?: WorkflowTargetReview;
+}
+
 export interface Workflow {
   id: string;
   name: string;
+  target: WorkflowTarget;
   nodes: FlowNode[];
   edges: FlowEdge[];
   variables: Record<string, string>;

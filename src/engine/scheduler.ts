@@ -26,6 +26,13 @@ import { createBufferedTextSink } from './streamBuffer';
 import { saveRun, type RunRecord } from '../storage/db';
 import { nanoid } from 'nanoid';
 import i18n from '../i18n';
+import { useWorkflowStore } from '../state/workflowStore';
+import {
+  createTargetReview,
+  formatTargetForPrompt,
+  targetRetrievalContext,
+  withTargetSystemPrompt,
+} from '../lib/target';
 
 /** Default model for lightweight internal model calls (router LLM-judge,
  *  aggregator summarize) when a node has no explicit model bound. */
@@ -107,6 +114,7 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
       status: st.status,
     };
   }
+  const targetReview = createTargetReview(wf);
   await saveRun({
     id: nanoid(),
     workflowId: wf.id,
@@ -117,9 +125,23 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
     nodeOutputs,
     finalOutput,
     triggerInput,
+    targetSnapshot: wf.target?.enabled ? wf.target : undefined,
+    targetReview,
   }).catch(() => {
     /* ignore storage errors */
   });
+
+  if (targetReview) {
+    const workflowStore = useWorkflowStore.getState();
+    if (workflowStore.workflow.id === wf.id) {
+      workflowStore.setTargetReview(targetReview);
+    }
+    run.log('info', i18n.t('engine.targetReviewLog', {
+      status: targetReview.status,
+      done: targetReview.checklistDone,
+      total: targetReview.checklistTotal,
+    }));
+  }
 
   run.log('info', i18n.t('engine.runEnded', { status }));
 }
@@ -218,7 +240,7 @@ async function runNode(
         provider: agg.provider ?? 'openrouter',
         model: agg.model ?? DEFAULT_JUDGE_MODEL,
       }), node.id);
-      const out = await summarizeAggregate(agg, upstreamSummaries, signal);
+      const out = await summarizeAggregate(agg, upstreamSummaries, wf, signal);
       outputs.set(node.id, out);
       run.setNodeState(node.id, { status: 'done', output: out, finishedAt: Date.now() });
       return;
@@ -238,7 +260,7 @@ async function runNode(
     const router = data as RouterNodeData;
     const input = upstreamSummaries[0]?.text ?? '';
     run.setNodeState(node.id, { status: 'running', startedAt: Date.now() });
-    const branch = await routeBranch(router, input, signal);
+    const branch = await routeBranch(router, input, wf, signal);
     // Record the decision so downstream edges on the other handle are filtered
     // out (their target nodes get skipped). Downstream receives the clean input.
     routerChoices.set(node.id, branch);
@@ -284,7 +306,7 @@ async function runNode(
       upstreams,
       vars: wf.variables,
     };
-    const system = interpolate(agent.soul, ctx);
+    const system = withTargetSystemPrompt(interpolate(agent.soul, ctx), wf);
     const userMsg = buildUserMessage(upstreamSummaries, ctx.input);
 
     run.setNodeState(node.id, {
@@ -308,7 +330,7 @@ async function runNode(
         signal,
         workflowId: wf.id,
         agentNodeId: node.id,
-        ragQueryContext: ctx.input,
+        ragQueryContext: targetRetrievalContext(wf, ctx.input),
         delegates,
         onDelta: outputSink.push,
       });
@@ -368,10 +390,13 @@ async function runDiscussNode(
     maxTokens: d.maxTokens,
     memory: 'session',
   };
-  const system = interpolate(d.soul, {
-    input: upstreamInput,
-    vars: wf.variables,
-  });
+  const system = withTargetSystemPrompt(
+    interpolate(d.soul, {
+      input: upstreamInput,
+      vars: wf.variables,
+    }),
+    wf
+  );
   const openingUserMsg = interpolate(d.openingPrompt, {
     input: upstreamInput,
     vars: wf.variables,
@@ -401,7 +426,7 @@ async function runDiscussNode(
       signal,
       workflowId: wf.id,
       agentNodeId: node.id,
-      ragQueryContext: upstreamInput,
+      ragQueryContext: targetRetrievalContext(wf, upstreamInput),
       onDelta: openingSink.push,
     });
     openingSink.flush();
@@ -448,7 +473,7 @@ async function runDiscussNode(
         signal,
         workflowId: wf.id,
         agentNodeId: node.id,
-        ragQueryContext: upstreamInput,
+        ragQueryContext: targetRetrievalContext(wf, upstreamInput),
         onDelta: replySink.push,
       });
       replySink.flush();
@@ -633,7 +658,7 @@ async function runManagedNode(
   run.log('info', i18n.t('engine.assigned', { task }), node.id);
 
   const ctx = { input: task, upstreams: {}, vars: wf.variables };
-  const system = interpolate(agent.soul, ctx);
+  const system = withTargetSystemPrompt(interpolate(agent.soul, ctx), wf);
   const subDelegates = buildDelegates(node.id, wf, idx, signal, inflight);
 
   const outputSink = createBufferedTextSink((d) => run.appendNodeOutput(node.id, d));
@@ -645,7 +670,7 @@ async function runManagedNode(
       signal,
       workflowId: wf.id,
       agentNodeId: node.id,
-      ragQueryContext: task,
+      ragQueryContext: targetRetrievalContext(wf, task),
       delegates: subDelegates,
       onDelta: outputSink.push,
     });
@@ -676,6 +701,7 @@ function firstLine(s: string): string {
 async function routeBranch(
   router: RouterNodeData,
   input: string,
+  wf: Workflow,
   signal: AbortSignal
 ): Promise<'a' | 'b'> {
   if (router.rule === 'regex') {
@@ -690,9 +716,12 @@ async function routeBranch(
   // llm-judge: a lightweight model call returns a single letter ("a"/"b").
   const provider = getProvider(router.provider ?? 'openrouter');
   const model = router.model ?? DEFAULT_JUDGE_MODEL;
-  const system = i18n.t('engine.routerJudgeSystem', {
-    criteria: (router.prompt ?? '').trim() || '(no criterion provided)',
-  });
+  const system = withTargetSystemPrompt(
+    i18n.t('engine.routerJudgeSystem', {
+      criteria: (router.prompt ?? '').trim() || '(no criterion provided)',
+    }),
+    wf
+  );
   let text = '';
   try {
     for await (const chunk of provider.stream({
@@ -776,22 +805,27 @@ function aggregate(
 async function summarizeAggregate(
   cfg: AggregatorNodeData,
   inputs: { name: string; text: string }[],
+  wf: Workflow,
   signal: AbortSignal
 ): Promise<string> {
   const material = concatInputs(inputs);
   if (!material.trim()) return i18n.t('engine.noUpstream');
   const provider = getProvider(cfg.provider ?? 'openrouter');
   const model = cfg.model ?? DEFAULT_JUDGE_MODEL;
-  const system = i18n.t('engine.summarizeSystem', {
-    instruction:
-      (cfg.prompt ?? '').trim() || i18n.t('engine.summarizeDefaultInstruction'),
-  });
+  const target = formatTargetForPrompt(wf);
+  const system = withTargetSystemPrompt(
+    i18n.t('engine.summarizeSystem', {
+      instruction:
+        (cfg.prompt ?? '').trim() || i18n.t('engine.summarizeDefaultInstruction'),
+    }),
+    wf
+  );
   let text = '';
   try {
     for await (const chunk of provider.stream({
       model,
       systemPrompt: system,
-      messages: [{ role: 'user', content: material }],
+      messages: [{ role: 'user', content: [target, material].filter(Boolean).join('\n\n---\n\n') }],
       temperature: 0.3,
       maxTokens: 1024,
       signal,

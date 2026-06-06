@@ -84,6 +84,9 @@ export function HistoryDialog({ open, onClose }: Props) {
                     </div>
                     {expanded ? (
                       <div className="space-y-3 border-t border-line bg-bg px-3 py-3 text-[12px]">
+                        {r.targetSnapshot ? (
+                          <TargetSection run={r} />
+                        ) : null}
                         <Section title={t('history.input')} body={r.triggerInput} />
                         <Section title={t('history.finalOutput')} body={r.finalOutput} />
                         <div>
@@ -117,6 +120,30 @@ export function HistoryDialog({ open, onClose }: Props) {
       </div>
     </div>
   );
+}
+
+function TargetSection({ run }: { run: RunRecord }) {
+  const { t } = useTranslation();
+  const target = run.targetSnapshot;
+  if (!target) return null;
+  const criteria = target.acceptanceCriteria
+    .filter((i) => i.text.trim())
+    .map((i) => `- ${i.text}`)
+    .join('\n');
+  const checklist = target.checklist
+    .filter((i) => i.text.trim())
+    .map((i) => `${i.done ? '[x]' : '[ ]'} ${i.text}`)
+    .join('\n');
+  const body = [
+    target.title ? `# ${target.title}` : '',
+    target.objective,
+    criteria ? `\n${t('target.acceptanceTitle')}\n${criteria}` : '',
+    checklist ? `\n${t('target.checklistTitle')}\n${checklist}` : '',
+    run.targetReview?.summary ? `\n${t('target.lastReview')}\n${run.targetReview.summary}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  return <Section title={t('target.title')} body={body} />;
 }
 
 function Section({ title, body }: { title: string; body: string }) {

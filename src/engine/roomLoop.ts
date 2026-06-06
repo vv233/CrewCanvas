@@ -8,6 +8,7 @@ import { useRunStore } from '../state/runStore';
 import { interpolate } from './interpolate';
 import { runAgent } from './runAgent';
 import { createBufferedTextSink } from './streamBuffer';
+import { targetRetrievalContext, withTargetSystemPrompt } from '../lib/target';
 import i18n from '../i18n';
 
 interface RoomCtx {
@@ -278,7 +279,7 @@ async function speak(
       history: history.map((h) => `${h.speaker}: ${h.text}`).join('\n'),
     },
   };
-  const system = interpolate(agent.data.soul, ctxObj);
+  const system = withTargetSystemPrompt(interpolate(agent.data.soul, ctxObj), workflow);
   const userMsg =
     overrideUser ??
     (history.length === 0
@@ -296,7 +297,7 @@ async function speak(
     signal,
     workflowId: workflow.id,
     agentNodeId: agent.id,
-    ragQueryContext: ctxObj.room.history,
+    ragQueryContext: targetRetrievalContext(workflow, ctxObj.room.history),
     onDelta,
   });
   run.log(

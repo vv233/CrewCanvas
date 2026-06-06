@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Workflow } from '../types';
+import type { Workflow, WorkflowTarget, WorkflowTargetReview } from '../types';
 
 export interface RunRecord {
   id: string;
@@ -11,6 +11,8 @@ export interface RunRecord {
   nodeOutputs: Record<string, { name: string; output: string; status: string }>;
   finalOutput: string;
   triggerInput: string;
+  targetSnapshot?: WorkflowTarget;
+  targetReview?: WorkflowTargetReview;
 }
 
 export interface WorkflowFileRecord {

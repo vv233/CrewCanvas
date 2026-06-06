@@ -16,6 +16,7 @@ import {
   Languages,
   PanelLeftOpen,
   PanelRightOpen,
+  Target as TargetIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
@@ -41,6 +42,7 @@ interface Props {
   onOpenHistory: () => void;
   onOpenFiles: () => void;
   onOpenRagLibrary: () => void;
+  onOpenTarget: () => void;
   onTogglePalette: () => void;
   onToggleInspector: () => void;
   paletteOpen: boolean;
@@ -55,6 +57,7 @@ export function TopBar({
   onOpenHistory,
   onOpenFiles,
   onOpenRagLibrary,
+  onOpenTarget,
   onTogglePalette,
   onToggleInspector,
   paletteOpen,
@@ -194,6 +197,9 @@ export function TopBar({
       </button>
       <button className="btn-ghost" onClick={onOpenHistory} title={t('topbar.historyTitle')}>
         <HistoryIcon size={14} /> <span className="hidden xl:inline">{t('topbar.history')}</span>
+      </button>
+      <button className="btn-ghost" onClick={onOpenTarget} title={t('topbar.targetTitle')}>
+        <TargetIcon size={14} /> <span className="hidden xl:inline">{t('topbar.target')}</span>
       </button>
       <button
         className="btn-ghost"
