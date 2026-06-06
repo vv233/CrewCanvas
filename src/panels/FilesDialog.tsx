@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import {
+  ChevronRight,
+  CornerUpLeft,
   X,
   RefreshCw,
   Upload,
@@ -28,6 +30,7 @@ interface Props {
 export function FilesDialog({ open, onClose }: Props) {
   const { t } = useTranslation();
   const workflow = useWorkflowStore((s) => s.workflow);
+  const [currentPath, setCurrentPath] = useState('/');
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<FsEntry | null>(null);
@@ -40,7 +43,7 @@ export function FilesDialog({ open, onClose }: Props) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await listFiles(workflow.id, '/');
+      const list = await listFiles(workflow.id, currentPath);
       setEntries(list);
     } catch (err) {
       console.error('listFiles error', err);
@@ -48,15 +51,41 @@ export function FilesDialog({ open, onClose }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [workflow.id]);
+  }, [workflow.id, currentPath]);
 
   useEffect(() => {
     if (open) {
       refresh();
-      setSelected(null);
-      setPreview(null);
     }
   }, [open, refresh]);
+
+  useEffect(() => {
+    setCurrentPath('/');
+  }, [workflow.id]);
+
+  useEffect(() => {
+    if (open) {
+      setSelected(null);
+      setPreview(null);
+      setPreviewTruncated(false);
+    }
+  }, [open, currentPath]);
+
+  const openDirectory = (path: string) => {
+    setCurrentPath(path);
+  };
+
+  const goToParent = () => {
+    setCurrentPath(parentPath(currentPath));
+  };
+
+  const onToggleNew = () => {
+    if (!newOpen) {
+      setNewPath(currentPath === '/' ? '/' : `${currentPath}/`);
+      setNewContent('');
+    }
+    setNewOpen((v) => !v);
+  };
 
   const onSelect = async (e: FsEntry) => {
     setSelected(e);
@@ -81,7 +110,7 @@ export function FilesDialog({ open, onClose }: Props) {
       const files = Array.from(input.files ?? []);
       for (const f of files) {
         const text = await f.text().catch(() => '');
-        await writeFile(workflow.id, '/' + f.name, text);
+        await writeFile(workflow.id, joinPath(currentPath, f.name), text);
       }
       await refresh();
     };
@@ -119,10 +148,17 @@ export function FilesDialog({ open, onClose }: Props) {
     setNewOpen(false);
     setNewPath('/');
     setNewContent('');
-    await refresh();
+    const nextPath = parentPath(newPath);
+    if (nextPath === currentPath) {
+      await refresh();
+    } else {
+      setCurrentPath(nextPath);
+    }
   };
 
   if (!open) return null;
+
+  const crumbs = pathCrumbs(currentPath);
 
   return (
     <div
@@ -143,7 +179,7 @@ export function FilesDialog({ open, onClose }: Props) {
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <button
               className="btn-ghost"
-              onClick={() => setNewOpen((v) => !v)}
+              onClick={onToggleNew}
               title={t('files.newTitle')}
             >
               <FilePlus size={14} /> {t('files.new')}
@@ -192,6 +228,41 @@ export function FilesDialog({ open, onClose }: Props) {
 
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
           <div className="max-h-44 w-full shrink-0 overflow-auto border-b border-line sm:max-h-none sm:w-64 sm:border-b-0 sm:border-r">
+            <div className="flex items-center gap-1 border-b border-line px-2 py-2">
+              <button
+                className="btn-ghost h-7 w-7 shrink-0 px-0 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={goToParent}
+                disabled={currentPath === '/'}
+                title={t('files.parent')}
+              >
+                <CornerUpLeft size={13} />
+              </button>
+              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto font-mono text-[11px] text-muted">
+                <button
+                  className={`rounded px-1.5 py-1 hover:bg-bg-soft hover:text-ink ${
+                    currentPath === '/' ? 'bg-bg-soft text-ink' : ''
+                  }`}
+                  onClick={() => setCurrentPath('/')}
+                  title={t('files.root')}
+                >
+                  /
+                </button>
+                {crumbs.map((crumb) => (
+                  <Fragment key={crumb.path}>
+                    <ChevronRight size={11} className="shrink-0 text-muted/70" />
+                    <button
+                      className={`max-w-28 truncate rounded px-1.5 py-1 hover:bg-bg-soft hover:text-ink ${
+                        currentPath === crumb.path ? 'bg-bg-soft text-ink' : ''
+                      }`}
+                      onClick={() => setCurrentPath(crumb.path)}
+                      title={crumb.path}
+                    >
+                      {crumb.name}
+                    </button>
+                  </Fragment>
+                ))}
+              </div>
+            </div>
             {entries.length === 0 && !loading ? (
               <div className="p-4 text-center text-[12px] text-muted">
                 {t('files.empty')}
@@ -201,21 +272,35 @@ export function FilesDialog({ open, onClose }: Props) {
                 {entries.map((e) => (
                   <li
                     key={e.path}
-                    className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-[12px] hover:bg-panel ${
+                    className={`group flex items-center text-[12px] hover:bg-panel ${
                       selected?.path === e.path ? 'bg-panel' : ''
                     }`}
-                    onClick={() => onSelect(e)}
                   >
+                    <button
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-1.5 text-left"
+                      onClick={() => (e.isDir ? openDirectory(e.path) : onSelect(e))}
+                      title={e.path}
+                    >
+                      {e.isDir ? (
+                        <Folder size={12} className="shrink-0 text-accent-cool" />
+                      ) : (
+                        <FileText size={12} className="shrink-0 text-muted" />
+                      )}
+                      <span className="flex-1 truncate text-ink">{e.name}</span>
+                      {e.size != null ? (
+                        <span className="shrink-0 text-[10px] text-muted">
+                          {formatSize(e.size)}
+                        </span>
+                      ) : null}
+                    </button>
                     {e.isDir ? (
-                      <Folder size={12} className="text-accent-cool" />
-                    ) : (
-                      <FileText size={12} className="text-muted" />
-                    )}
-                    <span className="flex-1 truncate text-ink">{e.name}</span>
-                    {e.size != null ? (
-                      <span className="text-[10px] text-muted">
-                        {formatSize(e.size)}
-                      </span>
+                      <button
+                        className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted opacity-70 hover:bg-accent-danger/10 hover:text-accent-danger sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                        onClick={() => onDelete(e)}
+                        title={t('common.delete')}
+                      >
+                        <Trash2 size={11} />
+                      </button>
                     ) : null}
                   </li>
                 ))}
@@ -282,4 +367,22 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
   return `${(bytes / 1024 / 1024).toFixed(2)}MB`;
+}
+
+function joinPath(dir: string, name: string): string {
+  return dir === '/' ? `/${name}` : `${dir}/${name}`;
+}
+
+function parentPath(path: string): string {
+  const parts = path.split('/').filter(Boolean);
+  parts.pop();
+  return parts.length === 0 ? '/' : `/${parts.join('/')}`;
+}
+
+function pathCrumbs(path: string): Array<{ name: string; path: string }> {
+  const parts = path.split('/').filter(Boolean);
+  return parts.map((name, index) => ({
+    name,
+    path: `/${parts.slice(0, index + 1).join('/')}`,
+  }));
 }

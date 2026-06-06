@@ -458,6 +458,8 @@ export default {
     new: '新建',
     uploadTitle: '上传文件',
     upload: '上传',
+    parent: '上级文件夹',
+    root: '根目录',
     pathLabel: '路径（以 / 开头）',
     pathPlaceholder: '/spec.md',
     contentLabel: '内容',

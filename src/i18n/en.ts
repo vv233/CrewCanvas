@@ -466,6 +466,8 @@ export default {
     new: 'New',
     uploadTitle: 'Upload files',
     upload: 'Upload',
+    parent: 'Parent folder',
+    root: 'Root folder',
     pathLabel: 'Path (starts with /)',
     pathPlaceholder: '/spec.md',
     contentLabel: 'Content',
