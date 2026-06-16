@@ -1,9 +1,13 @@
+import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { RouterNodeData } from '../../types';
 
-export function RouterNode({ data, selected }: NodeProps & { data: RouterNodeData }) {
+const HANDLE_A_STYLE = { top: '40%' };
+const HANDLE_B_STYLE = { top: '70%' };
+
+export const RouterNode = memo(function RouterNode({ data, selected }: NodeProps & { data: RouterNodeData }) {
   const { t } = useTranslation();
   return (
     <div
@@ -23,8 +27,8 @@ export function RouterNode({ data, selected }: NodeProps & { data: RouterNodeDat
           </div>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} id="a" style={{ top: '40%' }} />
-      <Handle type="source" position={Position.Right} id="b" style={{ top: '70%' }} />
+      <Handle type="source" position={Position.Right} id="a" style={HANDLE_A_STYLE} />
+      <Handle type="source" position={Position.Right} id="b" style={HANDLE_B_STYLE} />
     </div>
   );
-}
+});

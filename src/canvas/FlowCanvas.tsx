@@ -48,6 +48,19 @@ const edgeTypes: EdgeTypes = {
   manage: TypedEdge,
 };
 
+const MINIMAP_NODE_COLORS: Record<string, string> = {
+  agent: '#6366f1',
+  trigger: '#f97316',
+  output: '#10b981',
+  room: '#22d3ee',
+  router: '#f59e0b',
+  aggregator: '#a78bfa',
+};
+
+function miniMapNodeColor(n: Node): string {
+  return MINIMAP_NODE_COLORS[n.type ?? ''] ?? '#888';
+}
+
 function absolutePosition(node: Node): { x: number; y: number } {
   // For nodes with parentId we get back the absolute position by reading the
   // measured positionAbsolute field React Flow attaches at runtime; fall back
@@ -155,24 +168,7 @@ function CanvasInner() {
         {!pointerCoarse ? (
           <MiniMap
             position="bottom-right"
-            nodeColor={(n) => {
-              switch (n.type) {
-                case 'agent':
-                  return '#6366f1';
-                case 'trigger':
-                  return '#f97316';
-                case 'output':
-                  return '#10b981';
-                case 'room':
-                  return '#22d3ee';
-                case 'router':
-                  return '#f59e0b';
-                case 'aggregator':
-                  return '#a78bfa';
-                default:
-                  return '#888';
-              }
-            }}
+            nodeColor={miniMapNodeColor}
             maskColor="rgba(11, 13, 18, 0.7)"
           />
         ) : (

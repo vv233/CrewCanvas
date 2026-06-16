@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Bot } from 'lucide-react';
 import type { AgentNodeData } from '../../types';
 import { useRunStore } from '../../state/runStore';
 import { StatusDot } from './StatusDot';
 
-export function AgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
+export const AgentNode = memo(function AgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   const state = useRunStore((s) => s.nodeStates[id]);
   return (
     <div
@@ -38,4 +39,4 @@ export function AgentNode({ data, selected, id }: NodeProps & { data: AgentNodeD
       <Handle type="source" position={Position.Right} />
     </div>
   );
-}
+});

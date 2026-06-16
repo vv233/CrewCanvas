@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Combine } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AggregatorNodeData } from '../../types';
 
-export function AggregatorNode({
+export const AggregatorNode = memo(function AggregatorNode({
   data,
   selected,
 }: NodeProps & { data: AggregatorNodeData }) {
@@ -31,4 +32,4 @@ export function AggregatorNode({
       <Handle type="source" position={Position.Right} />
     </div>
   );
-}
+});

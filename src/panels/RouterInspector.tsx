@@ -1,8 +1,8 @@
 import { Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
-import type { FlowNode, ProviderId, RouterNodeData } from '../types';
-import { MODEL_OPTIONS } from '../providers/models';
+import type { FlowNode, RouterNodeData } from '../types';
+import { ProviderModelSelector } from '../lib/ProviderModelSelector';
 
 interface Props {
   node: FlowNode & { data: RouterNodeData };
@@ -58,41 +58,12 @@ export function RouterInspector({ node }: Props) {
             />
             <div className="mt-1 text-[10px] text-muted">{t('routerInspector.judgeHint')}</div>
           </div>
-          <div>
-            <div className="label mb-1">{t('fields.provider')}</div>
-            <select
-              className="input"
-              value={d.provider ?? 'openrouter'}
-              onChange={(e) => {
-                const provider = e.target.value as ProviderId;
-                const firstModel = MODEL_OPTIONS[provider][0]?.id ?? '';
-                update(node.id, { provider, model: firstModel });
-              }}
-            >
-              <option value="anthropic">Anthropic</option>
-              <option value="openai">OpenAI</option>
-              <option value="openrouter">OpenRouter</option>
-              <option value="ollama">{t('providers.ollamaLocal')}</option>
-              <option value="lmstudio">{t('providers.lmstudioLocal')}</option>
-            </select>
-          </div>
-          <div>
-            <div className="label mb-1">{t('fields.model')}</div>
-            <input
-              className="input font-mono text-[12px]"
-              list={`router-models-${d.provider ?? 'openrouter'}`}
-              value={d.model ?? ''}
-              onChange={(e) => update(node.id, { model: e.target.value })}
-              placeholder={t('agentInspector.modelPlaceholder')}
-            />
-            <datalist id={`router-models-${d.provider ?? 'openrouter'}`}>
-              {MODEL_OPTIONS[d.provider ?? 'openrouter'].map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </datalist>
-          </div>
+          <ProviderModelSelector
+            idPrefix="router-models"
+            provider={d.provider ?? 'openrouter'}
+            model={d.model ?? ''}
+            onChange={(next) => update(node.id, next)}
+          />
         </>
       )}
       <button className="btn-danger w-full" onClick={() => remove(node.id)}>

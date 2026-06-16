@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { MessageSquare, Send, CheckCheck, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,9 @@ import type { DiscussNodeData } from '../../types';
 import { useRunStore } from '../../state/runStore';
 import { StatusDot } from './StatusDot';
 
-export function DiscussNode({
+const DISCUSS_STYLE = { background: 'rgba(34, 211, 238, 0.03)' };
+
+export const DiscussNode = memo(function DiscussNode({
   data,
   selected,
   id,
@@ -52,7 +54,7 @@ export function DiscussNode({
           ? 'border-accent-cool shadow-[0_0_0_2px_rgba(34,211,238,0.2)]'
           : 'border-accent-cool/40'
       }`}
-      style={{ background: 'rgba(34, 211, 238, 0.03)' }}
+      style={DISCUSS_STYLE}
     >
       <Handle type="target" position={Position.Left} />
 
@@ -188,4 +190,4 @@ export function DiscussNode({
       <Handle type="source" position={Position.Right} />
     </div>
   );
-}
+});
