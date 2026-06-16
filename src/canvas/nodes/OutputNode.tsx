@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Flag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { OutputNodeData } from '../../types';
 import { useRunStore } from '../../state/runStore';
 
-export function OutputNode({ data, selected, id }: NodeProps & { data: OutputNodeData }) {
+export const OutputNode = memo(function OutputNode({ data, selected, id }: NodeProps & { data: OutputNodeData }) {
   const { t } = useTranslation();
   const state = useRunStore((s) => s.nodeStates[id]);
   return (
@@ -29,4 +30,4 @@ export function OutputNode({ data, selected, id }: NodeProps & { data: OutputNod
       )}
     </div>
   );
-}
+});

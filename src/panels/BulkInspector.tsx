@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { AgentNodeData, FlowNode, ProviderId } from '../types';
 import { MODEL_OPTIONS } from '../providers/models';
+import { ProviderModelSelector } from '../lib/ProviderModelSelector';
 
 interface Props {
   nodes: FlowNode[];
@@ -48,41 +49,15 @@ export function BulkInspector({ nodes }: Props) {
           <div className="text-[11px] text-muted">{t('bulkInspector.noAgents')}</div>
         ) : (
           <div className="space-y-2">
-            <div>
-              <div className="label mb-1">{t('fields.provider')}</div>
-              <select
-                className="input"
-                value={provider}
-                onChange={(e) => {
-                  const p = e.target.value as ProviderId;
-                  setProvider(p);
-                  setModel(MODEL_OPTIONS[p][0]?.id ?? '');
-                }}
-              >
-                <option value="anthropic">Anthropic</option>
-                <option value="openai">OpenAI</option>
-                <option value="openrouter">OpenRouter</option>
-                <option value="ollama">{t('providers.ollamaLocal')}</option>
-                <option value="lmstudio">{t('providers.lmstudioLocal')}</option>
-              </select>
-            </div>
-            <div>
-              <div className="label mb-1">{t('fields.model')}</div>
-              <input
-                className="input font-mono text-[12px]"
-                list={`bulk-models-${provider}`}
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder={t('agentInspector.modelPlaceholder')}
-              />
-              <datalist id={`bulk-models-${provider}`}>
-                {MODEL_OPTIONS[provider].map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </datalist>
-            </div>
+            <ProviderModelSelector
+              idPrefix="bulk-models"
+              provider={provider}
+              model={model}
+              onChange={(next) => {
+                setProvider(next.provider);
+                setModel(next.model);
+              }}
+            />
             <button className="btn-primary w-full" onClick={applySource}>
               <Wand2 size={14} /> {t('bulkInspector.apply', { count: agentIds.length })}
             </button>

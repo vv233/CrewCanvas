@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../state/settingsStore';
 import { getProvider } from '../providers/registry';
 import type { ProviderId } from '../types';
+import { Field } from '../lib/Field';
 
 interface Props {
   open: boolean;
@@ -310,15 +311,6 @@ function PingButton({
         {state === 'pinging' ? <Loader2 size={12} className="animate-spin" /> : null}
         {t('mcp.testConnection')}
       </button>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="label mb-1">{label}</div>
-      {children}
     </div>
   );
 }

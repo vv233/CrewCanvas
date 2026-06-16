@@ -1,9 +1,10 @@
 import { Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWorkflowStore } from '../state/workflowStore';
-import type { DiscussNodeData, FlowNode, ProviderId } from '../types';
-import { MODEL_OPTIONS } from '../providers/models';
+import type { DiscussNodeData, FlowNode } from '../types';
 import { MonacoSoul } from '../lib/MonacoSoul';
+import { Field } from '../lib/Field';
+import { ProviderModelSelector } from '../lib/ProviderModelSelector';
 
 interface Props {
   node: FlowNode & { data: DiscussNodeData };
@@ -33,38 +34,12 @@ export function DiscussInspector({ node }: Props) {
         />
       </Field>
 
-      <Field label={t('fields.provider')}>
-        <select
-          className="input"
-          value={d.provider}
-          onChange={(e) => {
-            const provider = e.target.value as ProviderId;
-            const firstModel = MODEL_OPTIONS[provider][0]?.id ?? '';
-            update(node.id, { provider, model: firstModel });
-          }}
-        >
-          <option value="anthropic">Anthropic</option>
-          <option value="openai">OpenAI</option>
-          <option value="openrouter">OpenRouter</option>
-          <option value="ollama">{t('providers.ollamaLocal')}</option>
-          <option value="lmstudio">{t('providers.lmstudioLocal')}</option>
-        </select>
-      </Field>
-      <Field label={t('fields.model')}>
-        <input
-          className="input font-mono text-[12px]"
-          list={`models-${d.provider}`}
-          value={d.model}
-          onChange={(e) => update(node.id, { model: e.target.value })}
-        />
-        <datalist id={`models-${d.provider}`}>
-          {MODEL_OPTIONS[d.provider].map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </datalist>
-      </Field>
+      <ProviderModelSelector
+        provider={d.provider}
+        model={d.model}
+        onChange={(next) => update(node.id, next)}
+        modelPlaceholder={false}
+      />
 
       <div className="grid grid-cols-2 gap-2">
         <Field label={t('fields.temperature')}>
@@ -117,15 +92,6 @@ export function DiscussInspector({ node }: Props) {
       <button className="btn-danger w-full" onClick={() => remove(node.id)}>
         <Trash2 size={14} /> {t('inspector.deleteNode')}
       </button>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="label mb-1">{label}</div>
-      {children}
     </div>
   );
 }

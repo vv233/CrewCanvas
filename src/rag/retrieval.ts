@@ -73,48 +73,6 @@ export function tokenize(text: string): string[] {
   return [...terms];
 }
 
-export function scoreChunks(
-  chunks: RagChunkInput[],
-  query: string,
-  opts?: { maxResults?: number; maxPerSource?: number }
-): RagSearchResult[] {
-  const queryTerms = tokenize(query);
-  if (queryTerms.length === 0) return [];
-
-  const querySet = new Set(queryTerms);
-  const scored: RagSearchResult[] = [];
-  for (const chunk of chunks) {
-    const termSet = new Set(chunk.terms);
-    let overlap = 0;
-    let weighted = 0;
-    for (const term of querySet) {
-      if (!termSet.has(term)) continue;
-      overlap += 1;
-      weighted += term.length > 1 ? 2 : 1;
-    }
-    if (overlap === 0) continue;
-    const density = weighted / Math.sqrt(Math.max(chunk.terms.length, 1));
-    const exactBonus = chunk.text.toLowerCase().includes(query.toLowerCase().trim())
-      ? 4
-      : 0;
-    scored.push({ ...chunk, score: density + overlap + exactBonus });
-  }
-
-  scored.sort((a, b) => b.score - a.score);
-  const maxResults = opts?.maxResults ?? RAG_MAX_RESULTS;
-  const maxPerSource = opts?.maxPerSource ?? RAG_MAX_RESULTS_PER_SOURCE;
-  const perSource = new Map<string, number>();
-  const out: RagSearchResult[] = [];
-  for (const result of scored) {
-    const count = perSource.get(result.sourceId) ?? 0;
-    if (count >= maxPerSource) continue;
-    perSource.set(result.sourceId, count + 1);
-    out.push(result);
-    if (out.length >= maxResults) break;
-  }
-  return out;
-}
-
 export function formatRagContext(
   results: RagSearchResult[],
   charLimit = RAG_CONTEXT_CHAR_LIMIT

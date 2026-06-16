@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TriggerNodeData } from '../../types';
 
-export function TriggerNode({ data, selected }: NodeProps & { data: TriggerNodeData }) {
+export const TriggerNode = memo(function TriggerNode({ data, selected }: NodeProps & { data: TriggerNodeData }) {
   const { t } = useTranslation();
   return (
     <div
@@ -28,4 +29,4 @@ export function TriggerNode({ data, selected }: NodeProps & { data: TriggerNodeD
       <Handle type="source" position={Position.Right} />
     </div>
   );
-}
+});

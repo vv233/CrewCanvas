@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createTargetItem, emptyTarget, normalizeTarget, targetProgress } from '../lib/target';
+import { Field } from '../lib/Field';
 import { useWorkflowStore } from '../state/workflowStore';
 import type { TargetStatus, WorkflowTarget, WorkflowTargetItem } from '../types';
 
@@ -277,15 +278,6 @@ function TargetList({
           ))
         )}
       </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="label mb-1">{label}</div>
-      {children}
     </div>
   );
 }

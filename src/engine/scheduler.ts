@@ -43,6 +43,24 @@ export interface RunHandle {
   promise: Promise<void>;
 }
 
+type UpstreamSummary = { name: string; type: EdgeType; text: string };
+
+/** Shared state threaded through a single workflow run. Bundling these into one
+ *  object keeps the per-node handlers to a readable signature instead of the
+ *  seven positional args the dispatcher used to carry. */
+interface NodeRunCtx {
+  wf: Workflow;
+  idx: ReturnType<typeof buildIndex>;
+  /** nodeId → output text produced by that node. */
+  outputs: Map<string, string>;
+  /** routerId → chosen source handle ('a' | 'b'). */
+  routerChoices: Map<string, string>;
+  /** nodes skipped because they sit on a branch the router did not take. */
+  skipped: Set<string>;
+  signal: AbortSignal;
+  run: ReturnType<typeof useRunStore.getState>;
+}
+
 export function runWorkflow(wf: Workflow): RunHandle {
   const controller = new AbortController();
   const promise = execute(wf, controller.signal);
@@ -55,11 +73,16 @@ export function runWorkflow(wf: Workflow): RunHandle {
 async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
   const run = useRunStore.getState();
   const idx = buildIndex(wf);
-  const outputs = new Map<string, string>(); // nodeId → output
-  // Router decisions (routerId → chosen source handle) and the set of nodes
-  // skipped because they sit on a branch the router did not take.
-  const routerChoices = new Map<string, string>();
-  const skipped = new Set<string>();
+  const ctx: NodeRunCtx = {
+    wf,
+    idx,
+    outputs: new Map<string, string>(),
+    routerChoices: new Map<string, string>(),
+    skipped: new Set<string>(),
+    signal,
+    run,
+  };
+  const { outputs } = ctx;
   const batches = topoBatches(wf, idx);
   const startedAt = Date.now();
   let status: RunRecord['status'] = 'done';
@@ -81,7 +104,7 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
       batch.map((id) => {
         const node = idx.nodes.get(id);
         if (!node) return;
-        return runNode(node, wf, idx, outputs, routerChoices, skipped, signal).catch((err) => {
+        return runNode(node, ctx).catch((err) => {
           if (signal.aborted) return;
           const msg = err instanceof Error ? err.message : String(err);
           run.setNodeState(id, { status: 'error', error: msg });
@@ -146,16 +169,11 @@ async function execute(wf: Workflow, signal: AbortSignal): Promise<void> {
   run.log('info', i18n.t('engine.runEnded', { status }));
 }
 
-async function runNode(
-  node: FlowNode,
-  wf: Workflow,
-  idx: ReturnType<typeof buildIndex>,
-  outputs: Map<string, string>,
-  routerChoices: Map<string, string>,
-  skipped: Set<string>,
-  signal: AbortSignal
-) {
-  const run = useRunStore.getState();
+/** Dispatcher: resolves a node's active upstream inputs, then hands off to the
+ *  per-kind handler. Trigger nodes are the one exception — they are graph entry
+ *  points and have no upstream to collect. */
+async function runNode(node: FlowNode, ctx: NodeRunCtx): Promise<void> {
+  const { run, idx, outputs, routerChoices, skipped } = ctx;
   const data = node.data;
 
   // 入口节点：用 trigger 的 input 作为输出
@@ -203,7 +221,7 @@ async function runNode(
   }
 
   const upstreams: Record<string, string> = {};
-  const upstreamSummaries: { name: string; type: EdgeType; text: string }[] = [];
+  const upstreamSummaries: UpstreamSummary[] = [];
   for (const e of activeIncoming) {
     const src = idx.nodes.get(e.source);
     if (!src) continue;
@@ -218,162 +236,217 @@ async function runNode(
     });
   }
 
-  if (data.kind === 'output') {
-    const out =
-      upstreamSummaries.map((u) => u.text).join('\n\n---\n\n') ||
-      i18n.t('engine.noUpstream');
-    outputs.set(node.id, out);
-    run.setNodeState(node.id, {
-      status: 'done',
-      output: out,
-      startedAt: Date.now(),
-      finishedAt: Date.now(),
-    });
-    return;
+  switch (data.kind) {
+    case 'output':
+      return runOutputNode(node, upstreamSummaries, ctx);
+    case 'aggregator':
+      return runAggregatorNode(
+        node as FlowNode & { data: AggregatorNodeData },
+        upstreamSummaries,
+        ctx
+      );
+    case 'router':
+      return runRouterNode(
+        node as FlowNode & { data: RouterNodeData },
+        upstreamSummaries,
+        ctx
+      );
+    case 'room':
+      return runRoomNode(
+        node as FlowNode & { data: RoomNodeData },
+        upstreamSummaries,
+        ctx
+      );
+    case 'discuss':
+      return runDiscussNode(
+        node as FlowNode & { data: DiscussNodeData },
+        upstreamSummaries,
+        ctx
+      );
+    case 'agent':
+      return runAgentNode(
+        node as FlowNode & { data: AgentNodeData },
+        upstreams,
+        upstreamSummaries,
+        ctx
+      );
   }
+}
 
-  if (data.kind === 'aggregator') {
-    const agg = data as AggregatorNodeData;
-    if (agg.strategy === 'summarize') {
-      run.setNodeState(node.id, { status: 'running', startedAt: Date.now() });
-      run.log('info', i18n.t('engine.calling', {
-        provider: agg.provider ?? 'openrouter',
-        model: agg.model ?? DEFAULT_JUDGE_MODEL,
-      }), node.id);
-      const out = await summarizeAggregate(agg, upstreamSummaries, wf, signal);
-      outputs.set(node.id, out);
-      run.setNodeState(node.id, { status: 'done', output: out, finishedAt: Date.now() });
-      return;
-    }
-    const out = aggregate(agg, upstreamSummaries);
-    outputs.set(node.id, out);
-    run.setNodeState(node.id, {
-      status: 'done',
-      output: out,
-      startedAt: Date.now(),
-      finishedAt: Date.now(),
-    });
-    return;
-  }
+/** Output node: join all active upstream outputs for display. */
+function runOutputNode(
+  node: FlowNode,
+  upstreamSummaries: UpstreamSummary[],
+  ctx: NodeRunCtx
+): void {
+  const { outputs, run } = ctx;
+  const out =
+    upstreamSummaries.map((u) => u.text).join('\n\n---\n\n') ||
+    i18n.t('engine.noUpstream');
+  outputs.set(node.id, out);
+  run.setNodeState(node.id, {
+    status: 'done',
+    output: out,
+    startedAt: Date.now(),
+    finishedAt: Date.now(),
+  });
+}
 
-  if (data.kind === 'router') {
-    const router = data as RouterNodeData;
-    const input = upstreamSummaries[0]?.text ?? '';
+/** Aggregator node: merge upstreams via the chosen strategy. `summarize` runs a
+ *  model call; the rest are synchronous string ops. */
+async function runAggregatorNode(
+  node: FlowNode & { data: AggregatorNodeData },
+  upstreamSummaries: UpstreamSummary[],
+  ctx: NodeRunCtx
+): Promise<void> {
+  const { outputs, run, wf, signal } = ctx;
+  const agg = node.data;
+  if (agg.strategy === 'summarize') {
     run.setNodeState(node.id, { status: 'running', startedAt: Date.now() });
-    const branch = await routeBranch(router, input, wf, signal);
-    // Record the decision so downstream edges on the other handle are filtered
-    // out (their target nodes get skipped). Downstream receives the clean input.
-    routerChoices.set(node.id, branch);
-    outputs.set(node.id, input);
+    run.log('info', i18n.t('engine.calling', {
+      provider: agg.provider ?? 'openrouter',
+      model: agg.model ?? DEFAULT_JUDGE_MODEL,
+    }), node.id);
+    const out = await summarizeAggregate(agg, upstreamSummaries, wf, signal);
+    outputs.set(node.id, out);
+    run.setNodeState(node.id, { status: 'done', output: out, finishedAt: Date.now() });
+    return;
+  }
+  const out = aggregate(agg, upstreamSummaries);
+  outputs.set(node.id, out);
+  run.setNodeState(node.id, {
+    status: 'done',
+    output: out,
+    startedAt: Date.now(),
+    finishedAt: Date.now(),
+  });
+}
+
+/** Router node: decide a branch and record it so downstream edges on the other
+ *  handle get filtered out (their targets are skipped). */
+async function runRouterNode(
+  node: FlowNode & { data: RouterNodeData },
+  upstreamSummaries: UpstreamSummary[],
+  ctx: NodeRunCtx
+): Promise<void> {
+  const { outputs, routerChoices, run, wf, signal } = ctx;
+  const router = node.data;
+  const input = upstreamSummaries[0]?.text ?? '';
+  run.setNodeState(node.id, { status: 'running', startedAt: Date.now() });
+  const branch = await routeBranch(router, input, wf, signal);
+  routerChoices.set(node.id, branch);
+  outputs.set(node.id, input);
+  run.setNodeState(node.id, {
+    status: 'done',
+    // Show the chosen branch on the canvas; downstream still gets clean input.
+    output: i18n.t('engine.routePrefix', { branch }) + input,
+    finishedAt: Date.now(),
+  });
+  run.log('info', i18n.t('engine.routedTo', { branch }), node.id);
+}
+
+/** Room node: run a group-chat loop across the room's member agents. */
+async function runRoomNode(
+  node: FlowNode & { data: RoomNodeData },
+  upstreamSummaries: UpstreamSummary[],
+  ctx: NodeRunCtx
+): Promise<void> {
+  const { outputs, run, wf, signal } = ctx;
+  const members = roomMembers(wf, node.id) as (FlowNode & { data: AgentNodeData })[];
+  const topic =
+    upstreamSummaries.map((u) => u.text).join('\n').trim() || i18n.t('engine.pleaseDiscuss');
+  run.setNodeState(node.id, { status: 'running', startedAt: Date.now(), output: '' });
+  for (const m of members) {
+    run.setNodeState(m.id, { status: 'queued', output: '' });
+  }
+  const { output } = await runRoom({ room: node, members, topic, workflow: wf, signal });
+  outputs.set(node.id, output);
+  run.setNodeState(node.id, { status: 'done', finishedAt: Date.now() });
+  for (const m of members) {
+    run.setNodeState(m.id, { status: 'done' });
+  }
+}
+
+/** Agent node: the core LLM call, with target-aware prompting, RAG retrieval,
+ *  and delegation to subordinate nodes via `manage` edges. */
+async function runAgentNode(
+  node: FlowNode & { data: AgentNodeData },
+  upstreams: Record<string, string>,
+  upstreamSummaries: UpstreamSummary[],
+  ctx: NodeRunCtx
+): Promise<void> {
+  const { outputs, run, wf, idx, signal } = ctx;
+  const agent = node.data;
+  const ic = {
+    input: upstreamSummaries.map((u) => u.text).join('\n\n').trim() || '',
+    upstreams,
+    vars: wf.variables,
+  };
+  const system = withTargetSystemPrompt(interpolate(agent.soul, ic), wf);
+  const userMsg = buildUserMessage(upstreamSummaries, ic.input);
+
+  run.setNodeState(node.id, {
+    status: 'running',
+    output: '',
+    startedAt: Date.now(),
+  });
+  run.log(
+    'info',
+    i18n.t('engine.calling', { provider: agent.provider, model: agent.model }),
+    node.id
+  );
+
+  const outputSink = createBufferedTextSink((d) => run.appendNodeOutput(node.id, d));
+  try {
+    const delegates = buildDelegates(node.id, wf, idx, signal, new Set([node.id]));
+    const result = await runAgent({
+      agent,
+      systemPrompt: system,
+      userMessage: userMsg,
+      signal,
+      workflowId: wf.id,
+      agentNodeId: node.id,
+      ragQueryContext: targetRetrievalContext(wf, ic.input),
+      delegates,
+      onDelta: outputSink.push,
+    });
+    outputSink.flush();
+    outputs.set(node.id, result.text);
     run.setNodeState(node.id, {
       status: 'done',
-      // Show the chosen branch on the canvas; downstream still gets clean input.
-      output: i18n.t('engine.routePrefix', { branch }) + input,
       finishedAt: Date.now(),
-    });
-    run.log('info', i18n.t('engine.routedTo', { branch }), node.id);
-    return;
-  }
-
-  if (data.kind === 'room') {
-    const room = node as FlowNode & { data: RoomNodeData };
-    const members = roomMembers(wf, node.id) as (FlowNode & { data: AgentNodeData })[];
-    const topic =
-      upstreamSummaries.map((u) => u.text).join('\n').trim() || i18n.t('engine.pleaseDiscuss');
-    run.setNodeState(node.id, { status: 'running', startedAt: Date.now(), output: '' });
-    for (const m of members) {
-      run.setNodeState(m.id, { status: 'queued', output: '' });
-    }
-    const { output } = await runRoom({ room, members, topic, workflow: wf, signal });
-    outputs.set(node.id, output);
-    run.setNodeState(node.id, { status: 'done', finishedAt: Date.now() });
-    for (const m of members) {
-      run.setNodeState(m.id, { status: 'done' });
-    }
-    return;
-  }
-
-  if (data.kind === 'discuss') {
-    await runDiscussNode(node as FlowNode & { data: DiscussNodeData }, wf, upstreamSummaries, outputs, signal);
-    return;
-  }
-
-  // agent
-  if (data.kind === 'agent') {
-    const agent = data as AgentNodeData;
-    const ctx = {
-      input: upstreamSummaries.map((u) => u.text).join('\n\n').trim() || '',
-      upstreams,
-      vars: wf.variables,
-    };
-    const system = withTargetSystemPrompt(interpolate(agent.soul, ctx), wf);
-    const userMsg = buildUserMessage(upstreamSummaries, ctx.input);
-
-    run.setNodeState(node.id, {
-      status: 'running',
-      output: '',
-      startedAt: Date.now(),
     });
     run.log(
       'info',
-      i18n.t('engine.calling', { provider: agent.provider, model: agent.model }),
+      result.toolRounds
+        ? i18n.t('engine.doneWithTools', { rounds: result.toolRounds })
+        : i18n.t('engine.done'),
       node.id
     );
-
-    const outputSink = createBufferedTextSink((d) => run.appendNodeOutput(node.id, d));
-    try {
-      const delegates = buildDelegates(node.id, wf, idx, signal, new Set([node.id]));
-      const result = await runAgent({
-        agent,
-        systemPrompt: system,
-        userMessage: userMsg,
-        signal,
-        workflowId: wf.id,
-        agentNodeId: node.id,
-        ragQueryContext: targetRetrievalContext(wf, ctx.input),
-        delegates,
-        onDelta: outputSink.push,
-      });
-      outputSink.flush();
-      outputs.set(node.id, result.text);
-      run.setNodeState(node.id, {
-        status: 'done',
-        finishedAt: Date.now(),
-      });
-      run.log(
-        'info',
-        result.toolRounds
-          ? i18n.t('engine.doneWithTools', { rounds: result.toolRounds })
-          : i18n.t('engine.done'),
-        node.id
-      );
-    } catch (err) {
-      outputSink.flush();
-      if ((err as Error).name === 'AbortError') {
-        run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
-        return;
-      }
-      const msg =
-        err instanceof ProviderError
-          ? err.message + (err.body ? `\n${err.body}` : '')
-          : err instanceof Error
-          ? err.message
-          : String(err);
-      run.setNodeState(node.id, { status: 'error', error: msg });
-      run.log('error', msg, node.id);
-      throw err;
+  } catch (err) {
+    outputSink.flush();
+    if ((err as Error).name === 'AbortError') {
+      run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
+      return;
     }
+    const msg =
+      err instanceof ProviderError
+        ? err.message + (err.body ? `\n${err.body}` : '')
+        : err instanceof Error
+        ? err.message
+        : String(err);
+    run.setNodeState(node.id, { status: 'error', error: msg });
+    run.log('error', msg, node.id);
+    throw err;
   }
 }
 
 async function runDiscussNode(
   node: FlowNode & { data: DiscussNodeData },
-  wf: Workflow,
-  upstreamSummaries: { name: string; type: EdgeType; text: string }[],
-  outputs: Map<string, string>,
-  signal: AbortSignal
+  upstreamSummaries: UpstreamSummary[],
+  ctx: NodeRunCtx
 ): Promise<void> {
-  const run = useRunStore.getState();
+  const { run, wf, outputs, signal } = ctx;
   const d = node.data;
   const upstreamInput =
     upstreamSummaries.map((u) => u.text).join('\n\n').trim() || '';
