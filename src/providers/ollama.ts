@@ -1,9 +1,18 @@
 import type { ChatProvider, StreamChunk, StreamOpts } from './types';
 import { ProviderError } from './types';
+import { streamLines } from './streamLines';
 import i18n from '../i18n';
 
 interface Config {
   baseUrl: string;
+}
+
+/** One streamed object from Ollama's NDJSON `/api/chat` response. */
+interface OllamaStreamChunk {
+  message?: { content?: string };
+  done?: boolean;
+  prompt_eval_count?: number;
+  eval_count?: number;
 }
 
 export function createOllamaProvider(cfg: Config): ChatProvider {
@@ -32,34 +41,22 @@ export function createOllamaProvider(cfg: Config): ChatProvider {
           i18n.t('errors.ollamaRequestFailed', { status: res.status, body: text.slice(0, 200) })
         );
       }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buf = '';
       let usage: { input: number; output: number } | undefined;
-      while (true) {
-        if (opts.signal?.aborted) throw new DOMException('aborted', 'AbortError');
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
-        for (const line of lines) {
-          const t = line.trim();
-          if (!t) continue;
-          try {
-            const j = JSON.parse(t);
-            if (j.message?.content) {
-              yield { delta: j.message.content, done: false };
-            }
-            if (j.done) {
-              usage = {
-                input: j.prompt_eval_count ?? 0,
-                output: j.eval_count ?? 0,
-              };
-            }
-          } catch {
-            /* skip */
-          }
+      for await (const line of streamLines(res, opts.signal)) {
+        let j: OllamaStreamChunk;
+        try {
+          j = JSON.parse(line) as OllamaStreamChunk;
+        } catch {
+          continue;
+        }
+        if (j.message?.content) {
+          yield { delta: j.message.content, done: false };
+        }
+        if (j.done) {
+          usage = {
+            input: j.prompt_eval_count ?? 0,
+            output: j.eval_count ?? 0,
+          };
         }
       }
       yield { delta: '', done: true, usage };
