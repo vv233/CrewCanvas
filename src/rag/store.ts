@@ -9,10 +9,10 @@ import {
 import {
   chunkText,
   formatRagContext,
-  scoreChunks,
   tokenize,
   type RagSearchResult,
 } from './retrieval';
+import { invalidateRagIndex, searchRagIndex } from './ragIndex';
 import i18n from '../i18n';
 
 export interface AddRagSourceInput {
@@ -78,11 +78,13 @@ export async function getRagSource(id: string): Promise<RagSourceRecord | undefi
 }
 
 export async function deleteRagSource(id: string): Promise<void> {
+  const source = await db.ragSources.get(id);
   const keys = await db.ragChunks.where('sourceId').equals(id).primaryKeys();
   await db.transaction('rw', db.ragSources, db.ragChunks, async () => {
     if (keys.length > 0) await db.ragChunks.bulkDelete(keys as string[]);
     await db.ragSources.delete(id);
   });
+  invalidateRagIndex(source?.workflowId);
 }
 
 export async function reindexRagSource(id: string): Promise<void> {
@@ -115,6 +117,7 @@ export async function reindexRagSource(id: string): Promise<void> {
       updatedAt: Date.now(),
     });
   }
+  invalidateRagIndex(source.workflowId);
 }
 
 export async function searchRag(
@@ -122,28 +125,7 @@ export async function searchRag(
   agentNodeId: string | undefined,
   query: string
 ): Promise<RagSearchResult[]> {
-  const sources = await db.ragSources.where('workflowId').equals(workflowId).toArray();
-  const eligible = sources.filter(
-    (s) =>
-      s.status === 'ready' &&
-      (s.scope === 'shared' ||
-        (s.scope === 'agent' && !!agentNodeId && s.agentNodeId === agentNodeId))
-  );
-  if (eligible.length === 0) return [];
-
-  const bySource = new Map(eligible.map((s) => [s.id, s]));
-  const chunks = await db.ragChunks.where('workflowId').equals(workflowId).toArray();
-  const inputs = chunks
-    .filter((c) => bySource.has(c.sourceId))
-    .map((c) => ({
-      id: c.id,
-      sourceId: c.sourceId,
-      sourceName: bySource.get(c.sourceId)?.name ?? c.sourceId.slice(0, 8),
-      chunkIndex: c.chunkIndex,
-      text: c.text,
-      terms: c.terms,
-    }));
-  return scoreChunks(inputs, query);
+  return searchRagIndex(workflowId, agentNodeId, query);
 }
 
 export async function buildRagContext(
@@ -202,6 +184,7 @@ export async function deleteRagForWorkflow(workflowId: string): Promise<void> {
     if (chunkKeys.length > 0) await db.ragChunks.bulkDelete(chunkKeys as string[]);
     if (sourceKeys.length > 0) await db.ragSources.bulkDelete(sourceKeys as string[]);
   });
+  invalidateRagIndex(workflowId);
 }
 
 export async function migrateLegacyKnowledge(wf: Workflow): Promise<void> {
