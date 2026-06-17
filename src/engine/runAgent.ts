@@ -2,8 +2,10 @@ import type {
   AgentNodeData,
   McpServerConfig,
   Message,
+  NodeTrace,
   ProviderId,
   ToolCall,
+  TraceToolCall,
   ToolDef,
 } from '../types';
 import { getProvider } from '../providers/registry';
@@ -49,6 +51,8 @@ export interface RunAgentResult {
   /** Final assistant text after all tool loops. */
   text: string;
   toolRounds: number;
+  /** What was actually sent to the model + tool calls made, for the inspector. */
+  trace: NodeTrace;
 }
 
 const PROVIDERS_WITH_TOOL_SUPPORT: ReadonlySet<ProviderId> = new Set<ProviderId>([
@@ -317,6 +321,24 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
     { role: 'user', content: safeUserMessage },
   ];
 
+  // Captured for the run inspector — what the model actually saw + did.
+  const traceToolCalls: TraceToolCall[] = [];
+  const makeResult = (text: string, rounds: number): RunAgentResult => ({
+    text,
+    toolRounds: rounds,
+    trace: {
+      provider: agent.provider,
+      model: agent.model,
+      systemPrompt: finalSystemPrompt,
+      userMessage: safeUserMessage,
+      ragQuery,
+      ragInjected: !!ragContext,
+      toolsOffered: allTools.map((t) => t.name),
+      toolCalls: traceToolCalls,
+      trimmed: wasTrimmed,
+    },
+  });
+
   let finalText = '';
   let toolRounds = 0;
   try {
@@ -356,7 +378,7 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
         finish !== 'tool_use' ||
         (!loaded && !builtins && delegationTools.length === 0 && kbTools.length === 0)
       ) {
-        return { text: finalText, toolRounds };
+        return makeResult(finalText, toolRounds);
       }
 
       // Persist the assistant turn (text + tool_calls) before executing.
@@ -373,7 +395,7 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
       toolRounds += 1;
       if (toolRounds > maxToolRounds) {
         onDelta?.(i18n.t('tools.maxToolRounds', { max: maxToolRounds }));
-        return { text: finalText, toolRounds };
+        return makeResult(finalText, toolRounds);
       }
 
       // Execute each tool call sequentially. Append a tool message per call.
@@ -440,6 +462,12 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
         onDelta?.(
           `\n${isError ? i18n.t('tools.toolError') : i18n.t('tools.toolResult')}：${displayResultText}\n`
         );
+        traceToolCalls.push({
+          name: tc.name,
+          args: tc.arguments.slice(0, TOOL_ARGUMENT_DISPLAY_LIMIT),
+          result: displayResultText,
+          isError,
+        });
         messages.push({
           role: 'tool',
           content: contextResultText,

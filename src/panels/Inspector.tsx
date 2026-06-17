@@ -9,6 +9,7 @@ import { OutputInspector } from './OutputInspector';
 import { DiscussInspector } from './DiscussInspector';
 import { EdgeInspector } from './EdgeInspector';
 import { BulkInspector } from './BulkInspector';
+import { NodeTrace } from './NodeTrace';
 
 interface Props {
   className?: string;
@@ -51,20 +52,30 @@ export function Inspector({ className }: Props) {
       <div className="flex-1 overflow-auto p-3">
         {multi ? (
           <BulkInspector nodes={selectedNodes} />
-        ) : node?.data?.kind === 'agent' ? (
-          <AgentInspector node={node as never} />
-        ) : node?.data?.kind === 'trigger' ? (
-          <TriggerInspector node={node as never} />
-        ) : node?.data?.kind === 'room' ? (
-          <RoomInspector node={node as never} />
-        ) : node?.data?.kind === 'aggregator' ? (
-          <AggregatorInspector node={node as never} />
-        ) : node?.data?.kind === 'router' ? (
-          <RouterInspector node={node as never} />
-        ) : node?.data?.kind === 'output' ? (
-          <OutputInspector node={node as never} />
-        ) : node?.data?.kind === 'discuss' ? (
-          <DiscussInspector node={node as never} />
+        ) : node ? (
+          <>
+            {(() => {
+              switch (node.data?.kind) {
+                case 'agent':
+                  return <AgentInspector node={node as never} />;
+                case 'trigger':
+                  return <TriggerInspector node={node as never} />;
+                case 'room':
+                  return <RoomInspector node={node as never} />;
+                case 'aggregator':
+                  return <AggregatorInspector node={node as never} />;
+                case 'router':
+                  return <RouterInspector node={node as never} />;
+                case 'output':
+                  return <OutputInspector node={node as never} />;
+                case 'discuss':
+                  return <DiscussInspector node={node as never} />;
+                default:
+                  return null;
+              }
+            })()}
+            <NodeTrace nodeId={node.id} />
+          </>
         ) : edge ? (
           <EdgeInspector edge={edge} />
         ) : (
