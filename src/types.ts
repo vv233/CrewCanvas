@@ -230,3 +230,35 @@ export interface NodeRunState {
   tokensIn?: number;
   tokensOut?: number;
 }
+
+/** One tool invocation captured during a node's run, for the run inspector. */
+export interface TraceToolCall {
+  name: string;
+  /** JSON-stringified arguments (may be truncated for display). */
+  args: string;
+  result: string;
+  isError: boolean;
+}
+
+/** What a node *actually* received and did during the last run — so the canvas
+ *  graph can be reconciled against what really happened. Populated by the
+ *  engine; surfaced in the Inspector. */
+export interface NodeTrace {
+  provider?: string;
+  model?: string;
+  /** Upstream outputs this node consumed, with the edge type they arrived on. */
+  upstreams?: { name: string; type: EdgeType; text: string }[];
+  /** The full system prompt actually sent to the model (after KB/RAG/trim). */
+  systemPrompt?: string;
+  /** The user message actually sent (after RAG injection/trim). */
+  userMessage?: string;
+  /** The query used for automatic RAG retrieval, and whether it injected text. */
+  ragQuery?: string;
+  ragInjected?: boolean;
+  /** Names of the tools advertised to the model. */
+  toolsOffered?: string[];
+  /** Tool calls executed during the run, in order. */
+  toolCalls?: TraceToolCall[];
+  /** True if any field had to be trimmed to fit context limits. */
+  trimmed?: boolean;
+}

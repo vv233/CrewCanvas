@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { NodeRunState } from '../types';
+import type { NodeRunState, NodeTrace } from '../types';
 import i18n from '../i18n';
 
 export interface DiscussionMessage {
@@ -26,12 +26,14 @@ interface RunStore {
   isRunning: boolean;
   runId: string | null;
   nodeStates: Record<string, NodeRunState>;
+  nodeTraces: Record<string, NodeTrace>;
   logs: { ts: number; nodeId?: string; level: 'info' | 'warn' | 'error'; msg: string }[];
   discussions: Record<string, DiscussionState>;
 
   beginRun: (runId: string) => void;
   endRun: () => void;
   setNodeState: (id: string, patch: Partial<NodeRunState>) => void;
+  setNodeTrace: (id: string, trace: NodeTrace) => void;
   appendNodeOutput: (id: string, delta: string) => void;
   resetNode: (id: string) => void;
   resetAll: () => void;
@@ -78,11 +80,12 @@ export const useRunStore = create<RunStore>((set) => ({
   isRunning: false,
   runId: null,
   nodeStates: {},
+  nodeTraces: {},
   logs: [],
   discussions: {},
 
   beginRun: (runId) =>
-    set({ isRunning: true, runId, nodeStates: {}, logs: [], discussions: {} }),
+    set({ isRunning: true, runId, nodeStates: {}, nodeTraces: {}, logs: [], discussions: {} }),
   endRun: () => {
     // Unblock any pending discussion awaiters so the run can wind down.
     for (const id of Array.from(resolvers.keys())) trigger(id);
@@ -118,6 +121,9 @@ export const useRunStore = create<RunStore>((set) => ({
       };
     }),
 
+  setNodeTrace: (id, trace) =>
+    set((s) => ({ nodeTraces: { ...s.nodeTraces, [id]: trace } })),
+
   appendNodeOutput: (id, delta) =>
     set((s) => {
       const prev = s.nodeStates[id] ?? { status: 'running', output: '' };
@@ -136,7 +142,7 @@ export const useRunStore = create<RunStore>((set) => ({
       return { nodeStates: next };
     }),
 
-  resetAll: () => set({ nodeStates: {}, logs: [] }),
+  resetAll: () => set({ nodeStates: {}, nodeTraces: {}, logs: [] }),
 
   log: (level, msg, nodeId) =>
     set((s) => ({

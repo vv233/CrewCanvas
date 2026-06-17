@@ -412,6 +412,7 @@ async function runAgentNode(
     });
     outputSink.flush();
     outputs.set(node.id, result.text);
+    run.setNodeTrace(node.id, { ...result.trace, upstreams: upstreamSummaries });
     run.setNodeState(node.id, {
       status: 'done',
       finishedAt: Date.now(),
@@ -492,7 +493,7 @@ async function runDiscussNode(
     run.appendDiscussionDelta(node.id, delta)
   );
   try {
-    await runAgent({
+    const opening = await runAgent({
       agent: asAgent,
       systemPrompt: system,
       userMessage: openingUserMsg,
@@ -503,6 +504,7 @@ async function runDiscussNode(
       onDelta: openingSink.push,
     });
     openingSink.flush();
+    run.setNodeTrace(node.id, { ...opening.trace, upstreams: upstreamSummaries });
   } catch (err) {
     openingSink.flush();
     if ((err as Error).name === 'AbortError') {
@@ -748,6 +750,7 @@ async function runManagedNode(
       onDelta: outputSink.push,
     });
     outputSink.flush();
+    run.setNodeTrace(node.id, result.trace);
     run.setNodeState(node.id, { status: 'done', finishedAt: Date.now() });
     return result.text;
   } catch (err) {
