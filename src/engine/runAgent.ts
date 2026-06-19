@@ -9,6 +9,7 @@ import type {
   ToolDef,
 } from '../types';
 import { getProvider } from '../providers/registry';
+import { useSettingsStore } from '../state/settingsStore';
 import { loadLocalMcpTools, type LoadedMcp } from '../mcp/loader';
 import { getWorkflowFsTools, type BuiltinTools } from './builtinTools';
 import { getCodeTools } from './codeTools';
@@ -88,10 +89,16 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
     onDelta?.(i18n.t('tools.noToolSupport', { provider: agent.provider }));
   }
 
+  // Merge globally-configured MCP servers (e.g. the local Companion) with this
+  // node's own, so connecting once globally lights up every AI node. A node's
+  // server overrides a global one with the same id.
+  const globalServers = useSettingsStore.getState().globalMcpServers ?? [];
+  const mcpServers = dedupeServersById([...globalServers, ...(agent.mcpServers ?? [])]);
+
   // Load local MCP servers if this provider supports tool calling.
   const localServers: McpServerConfig[] =
     supportsTools
-      ? (agent.mcpServers ?? []).filter(
+      ? mcpServers.filter(
           (s) => s.enabled && s.url && (s.transport ?? 'remote') === 'local'
         )
       : [];
@@ -363,7 +370,7 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
         messages: prepareMessagesForRequest(messages),
         temperature: agent.temperature,
         maxTokens: agent.maxTokens,
-        mcpServers: agent.mcpServers, // honored only by Anthropic (remote)
+        mcpServers, // global + node servers; honored only by Anthropic (remote)
         tools: allTools.length ? allTools : undefined,
         signal,
       })) {
@@ -492,6 +499,12 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
       });
     }
   }
+}
+
+function dedupeServersById(servers: McpServerConfig[]): McpServerConfig[] {
+  const byId = new Map<string, McpServerConfig>();
+  for (const s of servers) byId.set(s.id, s); // later entries win
+  return [...byId.values()];
 }
 
 function firstLine(s: string): string {

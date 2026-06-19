@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { McpServerConfig } from '../types';
 
 const STORAGE_KEY = 'aiof.settings.v1';
 
@@ -18,6 +19,9 @@ export interface SettingsState {
   syncToken: string;
   language: 'zh' | 'en';
   acknowledgedBrowserKeyWarning: boolean;
+  /** MCP servers available to EVERY AI node (e.g. the local Companion).
+   *  Merged with each node's own mcpServers at run time. */
+  globalMcpServers: McpServerConfig[];
 }
 
 const DEFAULTS: SettingsState = {
@@ -36,6 +40,7 @@ const DEFAULTS: SettingsState = {
   syncToken: '',
   language: 'en',
   acknowledgedBrowserKeyWarning: false,
+  globalMcpServers: [],
 };
 
 interface SettingsStore extends SettingsState {

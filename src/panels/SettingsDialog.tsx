@@ -5,6 +5,7 @@ import { useSettingsStore } from '../state/settingsStore';
 import { getProvider } from '../providers/registry';
 import type { ProviderId } from '../types';
 import { Field } from '../lib/Field';
+import { McpServersField } from './McpServersField';
 
 interface Props {
   open: boolean;
@@ -252,6 +253,15 @@ export function SettingsDialog({ open, onClose }: Props) {
               />
             </Field>
             <p className="text-[11px] text-muted">{t('settings.syncNote')}</p>
+          </Section>
+
+          <Section title={t('settings.companionTitle')}>
+            <p className="text-[11px] text-muted">{t('settings.companionNote')}</p>
+            <McpServersField
+              value={s.globalMcpServers}
+              onChange={(globalMcpServers) => s.update({ globalMcpServers })}
+              provider="openrouter"
+            />
           </Section>
         </div>
       </div>
