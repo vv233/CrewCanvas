@@ -644,6 +644,11 @@ export default {
     roleTool: '工具',
     roleSystem: '系统',
     roleUser: '用户',
+    runJsDesc:
+      '在沙箱里执行 JavaScript（无网络、无 DOM、无文件系统）并拿到结果。返回 console.log 输出和最后一个表达式的值。用它来计算、测试或验证你写的代码。',
+    runJsCodeDesc: '要运行的 JavaScript 源码，最后一个表达式的值会被返回。',
+    runJsTimeoutDesc: '可选超时（毫秒），默认 3000，最大 15000。',
+    runJsNoCode: '未提供代码。',
     fsListDesc:
       '列出当前工作流共享文件夹下的内容。当你需要确认有哪些文件、查找路径、读取记忆/报告/代码前，应先调用此工具。所有 AI 节点共享同一个文件夹。',
     fsListPathDesc: '相对路径，默认根目录 "/"。例如 "/" 或 "/docs"',
