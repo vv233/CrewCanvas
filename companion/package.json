@@ -1,0 +1,17 @@
+{
+  "name": "@crewcanvas/companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local MCP companion for CrewCanvas — real filesystem, .pptx generation, and opt-in shell, scoped to a workspace.",
+  "license": "GPL-3.0",
+  "bin": {
+    "crewcanvas-companion": "server.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "pptxgenjs": "^3.12.0"
+  }
+}
