@@ -441,6 +441,9 @@ export default {
     endpoint: 'Endpoint',
     token: 'Token',
     syncNote: '留空则不开启同步，所有数据仅本地存储。同步协议在 M5 阶段接入。',
+    companionTitle: '全局工具（Companion / MCP）',
+    companionNote:
+      '在这里添加的服务器会自动对所有 AI 节点生效，无需逐个节点配置。启动本地 Companion 后，把它的 URL 和 token 填到这里。',
     pingOk: '连接成功',
     connectedBadge: '已连通',
   },

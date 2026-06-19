@@ -448,6 +448,9 @@ export default {
     endpoint: 'Endpoint',
     token: 'Token',
     syncNote: 'Empty = sync off; all data stays local only. The sync protocol lands in M5.',
+    companionTitle: 'Global tools (Companion / MCP)',
+    companionNote:
+      'Servers added here are available to every AI node automatically — no per-node setup. Start the local Companion, then paste its URL + token here.',
     pingOk: 'Connected',
     connectedBadge: 'Connected',
   },
