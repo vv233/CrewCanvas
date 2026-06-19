@@ -68,6 +68,12 @@ prints the URL + token to paste into CrewCanvas.
 > The installer must be compiled on Windows (or via Windows CI) — the Inno Setup
 > compiler and the bundled Node binary are Windows-native.
 
+**Don't want to build it yourself?** The
+[`Companion Windows Installer`](../.github/workflows/companion-windows.yml)
+GitHub Actions workflow builds `setup.exe` on a Windows runner — run it manually
+(Actions → "Companion Windows Installer" → *Run workflow*) to download the
+artifact, or push a `companion-v*` tag to attach it to a Release.
+
 ## Security
 
 This process acts on the real filesystem on behalf of a web page. It is designed
