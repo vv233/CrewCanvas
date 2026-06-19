@@ -10,7 +10,8 @@ import type {
 } from '../types';
 import { getProvider } from '../providers/registry';
 import { loadLocalMcpTools, type LoadedMcp } from '../mcp/loader';
-import { getWorkflowFsTools } from './builtinTools';
+import { getWorkflowFsTools, type BuiltinTools } from './builtinTools';
+import { getCodeTools } from './codeTools';
 import { buildRagContext } from '../rag/store';
 import i18n from '../i18n';
 
@@ -103,12 +104,19 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
     }
   }
 
-  // Builtin per-workflow fs tools (always on when workflowId provided and
-  // provider supports tool calling).
-  const builtins =
-    supportsTools && opts.workflowId
-      ? getWorkflowFsTools(opts.workflowId)
-      : null;
+  // Builtin tools (when the provider supports tool calling): per-workflow fs
+  // ops (need a workflowId) + the code-execution sandbox (always available).
+  const builtinGroups: BuiltinTools[] = [
+    ...(supportsTools && opts.workflowId ? [getWorkflowFsTools(opts.workflowId)] : []),
+    ...(supportsTools ? [getCodeTools()] : []),
+  ];
+  const builtins: BuiltinTools | null = builtinGroups.length
+    ? {
+        tools: builtinGroups.flatMap((g) => g.tools),
+        handlers: new Map(builtinGroups.flatMap((g) => [...g.handlers])),
+      }
+    : null;
+  const hasFsTools = supportsTools && !!opts.workflowId;
 
   // Delegation tools — exposed when the agent has subordinates declared
   // via `manage` edges. The model can call them in any order, multiple
@@ -311,7 +319,7 @@ export async function runAgent(opts: RunAgentOpts): Promise<RunAgentResult> {
     safeSystemPrompt,
     safeKbInline ? `${i18n.t('tools.kbInlineHeader')}\n\n${safeKbInline}` : '',
     ragContext,
-    builtins ? i18n.t('tools.fsInstructions') : '',
+    hasFsTools ? i18n.t('tools.fsInstructions') : '',
   ]
     .filter(Boolean)
     .join('\n\n');

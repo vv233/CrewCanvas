@@ -660,6 +660,11 @@ export default {
     roleTool: 'tool',
     roleSystem: 'system',
     roleUser: 'user',
+    runJsDesc:
+      'Execute JavaScript in a sandbox (no network, DOM, or filesystem access) and get the result. Returns console.log output and the value of the last expression. Use this to compute, test, or verify code you wrote.',
+    runJsCodeDesc: 'JavaScript source to run. The value of the last expression is returned.',
+    runJsTimeoutDesc: 'Optional timeout in ms (default 3000, max 15000).',
+    runJsNoCode: 'No code provided.',
     fsListDesc:
       'List the contents of this workflow\'s shared folder. Call this first when you need to confirm which files exist, find a path, or before reading memory/reports/code. All AI nodes share the same folder.',
     fsListPathDesc: 'Relative path, defaults to root "/". e.g. "/" or "/docs"',
