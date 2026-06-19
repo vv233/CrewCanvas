@@ -869,6 +869,14 @@ Do not output anything else.
     pmWorkflowName: 'Product Trio',
     pmTriggerInput:
       'I want to build a tool that lets indie developers quickly create landing pages, targeting indie hackers.',
+    codeName: 'Code Runner',
+    codeDesc:
+      'An engineer writes JavaScript and runs it in the run_js sandbox to verify, then reports the result.',
+    codeWorkflowName: 'Code Runner',
+    codeTriggerInput:
+      'Write a function isPrime(n), then test it on 2, 7, 12, 97 and 100 and report which numbers are prime.',
+    codeSoul:
+      'You are a senior software engineer. For any task involving computation, logic, parsing, or algorithms: write JavaScript and ALWAYS call the run_js tool to actually execute and verify it before answering — never claim code works without running it. Use console.log to print intermediate values and test cases. In your final reply, include the working code and the verified output.',
   },
 };
 

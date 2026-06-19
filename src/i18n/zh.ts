@@ -851,5 +851,11 @@ export default {
     pmDesc: 'PM 收到需求 → 工程师评估技术 → 设计师设计 UI → 输出综合方案',
     pmWorkflowName: '产品三人组',
     pmTriggerInput: '我想做一个可以让独立开发者快速搭建落地页的工具，目标用户是 indie hacker。',
+    codeName: '代码执行器（写 + 跑）',
+    codeDesc: '工程师写 JavaScript 并用 run_js 沙箱执行验证，再汇报结果。',
+    codeWorkflowName: '代码执行器',
+    codeTriggerInput: '写一个 isPrime(n) 函数，然后在 2、7、12、97、100 上测试，报告哪些是质数。',
+    codeSoul:
+      '你是一名资深软件工程师。遇到任何涉及计算、逻辑、解析或算法的任务：先写 JavaScript，并且必须调用 run_js 工具真正执行、验证结果之后再回答——绝不在没运行的情况下声称代码可用。用 console.log 打印中间值和测试用例。最终回复里附上可运行的代码和已验证的输出。',
   },
 };

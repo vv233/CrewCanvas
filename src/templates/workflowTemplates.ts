@@ -71,4 +71,49 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       };
     },
   },
+  {
+    id: 'code-runner',
+    get name() {
+      return i18n.t('templatesData.codeName');
+    },
+    get description() {
+      return i18n.t('templatesData.codeDesc');
+    },
+    build(): Workflow {
+      const trig = nanoid();
+      const eng = nanoid();
+      const out = nanoid();
+      return {
+        id: nanoid(),
+        name: i18n.t('templatesData.codeWorkflowName'),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        variables: {},
+        target: emptyTarget(),
+        nodes: [
+          {
+            id: trig,
+            type: 'trigger',
+            position: { x: 40, y: 160 },
+            data: {
+              ...defaultNodeData('trigger'),
+              input: i18n.t('templatesData.codeTriggerInput'),
+            } as AnyNodeData,
+          },
+          {
+            id: eng,
+            type: 'agent',
+            position: { x: 340, y: 160 },
+            // Engineer persona, but tell it to actually run code via run_js.
+            data: { ...presetAgent('engineer'), soul: i18n.t('templatesData.codeSoul') },
+          },
+          { id: out, type: 'output', position: { x: 660, y: 160 }, data: defaultNodeData('output') },
+        ],
+        edges: [
+          { id: nanoid(), source: trig, target: eng, type: 'pipe', data: { type: 'pipe' } },
+          { id: nanoid(), source: eng, target: out, type: 'pipe', data: { type: 'pipe' } },
+        ],
+      };
+    },
+  },
 ];
