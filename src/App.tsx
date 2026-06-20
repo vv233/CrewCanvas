@@ -13,6 +13,8 @@ import { RagLibraryDialog } from './panels/RagLibraryDialog';
 import { TargetDialog } from './panels/TargetDialog';
 import { useRunStore } from './state/runStore';
 import { useWorkflowStore } from './state/workflowStore';
+import { useSettingsStore } from './state/settingsStore';
+import { providersMissingKey, PROVIDER_LABELS } from './lib/providerKeys';
 import { runWorkflow, type RunHandle } from './engine/scheduler';
 import { migrateLegacyKnowledge } from './rag/store';
 import { nanoid } from 'nanoid';
@@ -42,6 +44,14 @@ export default function App() {
     const wf = useWorkflowStore.getState().workflow;
     if (wf.nodes.length === 0) {
       alert(t('app.noNodes'));
+      return;
+    }
+    // First-run guard: catch missing cloud-provider keys before the run fails
+    // with a console-only error, and send the user straight to Settings.
+    const missing = providersMissingKey(wf, useSettingsStore.getState());
+    if (missing.length > 0) {
+      alert(t('app.missingKey', { providers: missing.map((p) => PROVIDER_LABELS[p]).join(', ') }));
+      setSettingsOpen(true);
       return;
     }
     useRunStore.getState().beginRun(nanoid());
