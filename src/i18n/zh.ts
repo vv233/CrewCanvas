@@ -21,6 +21,8 @@ export const zh: Resources = {
     noNodes: '画布上没有节点',
     runStart: '开始运行：{{name}}',
     runAborted: '用户中止运行',
+    missingKey:
+      '运行前需要先配置这些提供方的 API Key：{{providers}}。正在打开设置——填好后再点 Run。',
   },
   topbar: {
     name: 'CrewCanvas',

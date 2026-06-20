@@ -19,6 +19,8 @@ export const en = {
     noNodes: 'No nodes on the canvas',
     runStart: 'Run started: {{name}}',
     runAborted: 'User aborted the run',
+    missingKey:
+      'An API key is required before you can run: {{providers}}. Opening Settings — add the key there, then Run again.',
   },
   topbar: {
     name: 'CrewCanvas',
