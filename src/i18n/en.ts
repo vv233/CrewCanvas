@@ -450,6 +450,12 @@ export default {
     endpoint: 'Endpoint',
     token: 'Token',
     syncNote: 'Empty = sync off; all data stays local only. The sync protocol lands in M5.',
+    defaultModelTitle: 'Default model',
+    defaultModelNote:
+      'New AI / Discuss / Branch nodes inherit this model — set it once instead of picking per node.',
+    applyToAll: 'Apply to all AI nodes in this workflow',
+    appliedToAll: '✓ Applied to {{count}} node(s)',
+    applyNone: 'No AI nodes in this workflow yet',
     companionTitle: 'Global tools (Companion / MCP)',
     companionNote:
       'Servers added here are available to every AI node automatically — no per-node setup. Start the local Companion, then paste its URL + token here.',

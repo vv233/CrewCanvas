@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { McpServerConfig } from '../types';
+import type { McpServerConfig, ProviderId } from '../types';
 
 const STORAGE_KEY = 'aiof.settings.v1';
 
@@ -22,6 +22,10 @@ export interface SettingsState {
   /** MCP servers available to EVERY AI node (e.g. the local Companion).
    *  Merged with each node's own mcpServers at run time. */
   globalMcpServers: McpServerConfig[];
+  /** Provider + model that newly-created AI / Discuss / Router nodes inherit,
+   *  so the model is chosen once instead of per node. */
+  defaultProvider: ProviderId;
+  defaultModel: string;
 }
 
 const DEFAULTS: SettingsState = {
@@ -41,6 +45,8 @@ const DEFAULTS: SettingsState = {
   language: 'en',
   acknowledgedBrowserKeyWarning: false,
   globalMcpServers: [],
+  defaultProvider: 'openrouter',
+  defaultModel: 'openai/gpt-oss-120b:free',
 };
 
 interface SettingsStore extends SettingsState {
