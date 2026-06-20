@@ -1,7 +1,11 @@
 import type { AnyNodeData, NodeType } from '../types';
+import { useSettingsStore } from '../state/settingsStore';
 import i18n from '../i18n';
 
 export function defaultNodeData(type: NodeType): AnyNodeData {
+  // New model-driven nodes inherit the user's global default (set once in
+  // Settings) instead of a hardcoded free model.
+  const { defaultProvider, defaultModel } = useSettingsStore.getState();
   switch (type) {
     case 'agent':
       return {
@@ -9,8 +13,8 @@ export function defaultNodeData(type: NodeType): AnyNodeData {
         name: i18n.t('defaults.agentName'),
         avatar: '🧑‍💻',
         soul: i18n.t('defaults.agentSoul'),
-        provider: 'openrouter',
-        model: 'openai/gpt-oss-120b:free',
+        provider: defaultProvider,
+        model: defaultModel,
         temperature: 0.7,
         maxTokens: 2048,
         memory: 'session',
@@ -49,8 +53,8 @@ export function defaultNodeData(type: NodeType): AnyNodeData {
         rule: 'llm-judge',
         pattern: '',
         prompt: '',
-        provider: 'openrouter',
-        model: 'openai/gpt-oss-120b:free',
+        provider: defaultProvider,
+        model: defaultModel,
       };
     case 'output':
       return {
@@ -63,8 +67,8 @@ export function defaultNodeData(type: NodeType): AnyNodeData {
         name: i18n.t('defaults.discussName'),
         avatar: '💬',
         soul: i18n.t('defaults.discussSoul'),
-        provider: 'openrouter',
-        model: 'openai/gpt-oss-120b:free',
+        provider: defaultProvider,
+        model: defaultModel,
         temperature: 0.7,
         maxTokens: 2048,
         // {{input}} is resolved later by the soul interpolator.

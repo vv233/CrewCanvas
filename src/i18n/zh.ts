@@ -443,6 +443,12 @@ export default {
     endpoint: 'Endpoint',
     token: 'Token',
     syncNote: '留空则不开启同步，所有数据仅本地存储。同步协议在 M5 阶段接入。',
+    defaultModelTitle: '默认模型',
+    defaultModelNote:
+      '新建的 AI / 讨论 / 分支节点都用这个模型——设一次，不用逐个节点选。',
+    applyToAll: '套用到当前工作流的所有 AI 节点',
+    appliedToAll: '✓ 已套用到 {{count}} 个节点',
+    applyNone: '当前工作流还没有 AI 节点',
     companionTitle: '全局工具（Companion / MCP）',
     companionNote:
       '在这里添加的服务器会自动对所有 AI 节点生效，无需逐个节点配置。启动本地 Companion 后，把它的 URL 和 token 填到这里。',

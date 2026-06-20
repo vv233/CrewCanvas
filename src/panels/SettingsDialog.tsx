@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { X, AlertTriangle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../state/settingsStore';
+import { useWorkflowStore } from '../state/workflowStore';
 import { getProvider } from '../providers/registry';
-import type { ProviderId } from '../types';
+import type { AgentNodeData, ProviderId } from '../types';
 import { Field } from '../lib/Field';
+import { ProviderModelSelector } from '../lib/ProviderModelSelector';
 import { McpServersField } from './McpServersField';
 
 interface Props {
@@ -31,6 +33,23 @@ export function SettingsDialog({ open, onClose }: Props) {
     openrouter: '',
     lmstudio: '',
   });
+
+  const [appliedMsg, setAppliedMsg] = useState<string | null>(null);
+  const applyDefaultToAll = () => {
+    const wf = useWorkflowStore.getState().workflow;
+    const ids = wf.nodes
+      .filter((n) => n.data.kind === 'agent' || n.data.kind === 'discuss')
+      .map((n) => n.id);
+    if (ids.length === 0) {
+      setAppliedMsg(t('settings.applyNone'));
+      return;
+    }
+    useWorkflowStore.getState().updateNodesData(ids, {
+      provider: s.defaultProvider,
+      model: s.defaultModel,
+    } as Partial<AgentNodeData>);
+    setAppliedMsg(t('settings.appliedToAll', { count: ids.length }));
+  };
 
   const test = async (id: ProviderId) => {
     setPingState((p) => ({ ...p, [id]: 'pinging' }));
@@ -72,6 +91,24 @@ export function SettingsDialog({ open, onClose }: Props) {
               <p className="mt-1 text-amber-100/80">{t('settings.warningBody')}</p>
             </div>
           </div>
+
+          <Section title={t('settings.defaultModelTitle')}>
+            <p className="text-[11px] text-muted">{t('settings.defaultModelNote')}</p>
+            <ProviderModelSelector
+              idPrefix="default-models"
+              provider={s.defaultProvider}
+              model={s.defaultModel}
+              onChange={(next) =>
+                s.update({ defaultProvider: next.provider, defaultModel: next.model })
+              }
+            />
+            <button className="btn-ghost h-8 w-full text-xs" onClick={applyDefaultToAll}>
+              {t('settings.applyToAll')}
+            </button>
+            {appliedMsg ? (
+              <p className="text-[11px] text-emerald-400">{appliedMsg}</p>
+            ) : null}
+          </Section>
 
           <Section
             title="Anthropic"
