@@ -459,6 +459,9 @@ export default {
     companionTitle: 'Global tools (Companion / MCP)',
     companionNote:
       'Servers added here are available to every AI node automatically — no per-node setup. Start the local Companion, then paste its URL + token here.',
+    connectCompanion: '+ Connect local Companion (localhost:8787)',
+    companionAdded: '✓ Companion added below — expand it and paste the token.',
+    companionExists: 'Companion is already in the list below.',
     pingOk: 'Connected',
     connectedBadge: 'Connected',
   },
