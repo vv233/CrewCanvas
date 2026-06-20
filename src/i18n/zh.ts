@@ -452,6 +452,9 @@ export default {
     companionTitle: '全局工具（Companion / MCP）',
     companionNote:
       '在这里添加的服务器会自动对所有 AI 节点生效，无需逐个节点配置。启动本地 Companion 后，把它的 URL 和 token 填到这里。',
+    connectCompanion: '+ 连接本地 Companion（localhost:8787）',
+    companionAdded: '✓ 已在下方添加 Companion——展开它并粘贴 token。',
+    companionExists: 'Companion 已在下方列表中。',
     pingOk: '连接成功',
     connectedBadge: '已连通',
   },

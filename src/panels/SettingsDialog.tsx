@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { X, AlertTriangle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { nanoid } from 'nanoid';
 import { useSettingsStore } from '../state/settingsStore';
 import { useWorkflowStore } from '../state/workflowStore';
 import { getProvider } from '../providers/registry';
-import type { AgentNodeData, ProviderId } from '../types';
+import type { AgentNodeData, McpServerConfig, ProviderId } from '../types';
 import { Field } from '../lib/Field';
 import { ProviderModelSelector } from '../lib/ProviderModelSelector';
 import { McpServersField } from './McpServersField';
+
+/** Default URL the local Companion prints on startup. */
+const COMPANION_URL = 'http://127.0.0.1:8787/mcp';
 
 interface Props {
   open: boolean;
@@ -49,6 +53,25 @@ export function SettingsDialog({ open, onClose }: Props) {
       model: s.defaultModel,
     } as Partial<AgentNodeData>);
     setAppliedMsg(t('settings.appliedToAll', { count: ids.length }));
+  };
+
+  const [companionMsg, setCompanionMsg] = useState<string | null>(null);
+  const connectCompanion = () => {
+    const list = s.globalMcpServers ?? [];
+    if (list.some((srv) => srv.url === COMPANION_URL)) {
+      setCompanionMsg(t('settings.companionExists'));
+      return;
+    }
+    const entry: McpServerConfig = {
+      id: nanoid(),
+      enabled: true,
+      name: 'Companion',
+      url: COMPANION_URL,
+      transport: 'local',
+      authorizationToken: '',
+    };
+    s.update({ globalMcpServers: [...list, entry] });
+    setCompanionMsg(t('settings.companionAdded'));
   };
 
   const test = async (id: ProviderId) => {
@@ -294,6 +317,12 @@ export function SettingsDialog({ open, onClose }: Props) {
 
           <Section title={t('settings.companionTitle')}>
             <p className="text-[11px] text-muted">{t('settings.companionNote')}</p>
+            <button className="btn-ghost h-8 w-full text-xs" onClick={connectCompanion}>
+              {t('settings.connectCompanion')}
+            </button>
+            {companionMsg ? (
+              <p className="text-[11px] text-emerald-400">{companionMsg}</p>
+            ) : null}
             <McpServersField
               value={s.globalMcpServers}
               onChange={(globalMcpServers) => s.update({ globalMcpServers })}
