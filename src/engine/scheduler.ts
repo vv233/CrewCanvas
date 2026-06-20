@@ -430,15 +430,16 @@ async function runAgentNode(
       run.setNodeState(node.id, { status: 'error', error: i18n.t('engine.aborted') });
       return;
     }
+    // Re-throw with the formatted message (incl. ProviderError body). execute()'s
+    // catch records the node error + logs it once — logging here too would
+    // duplicate the console line.
     const msg =
       err instanceof ProviderError
         ? err.message + (err.body ? `\n${err.body}` : '')
         : err instanceof Error
         ? err.message
         : String(err);
-    run.setNodeState(node.id, { status: 'error', error: msg });
-    run.log('error', msg, node.id);
-    throw err;
+    throw new Error(msg);
   }
 }
 
